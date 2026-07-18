@@ -1,0 +1,126 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(200, 168, 75, 0.08), transparent 38rem),
+    linear-gradient(180deg, #090807 0%, #060504 100%);
+}
+
+.font-display {
+  font-family: 'Cinzel', serif;
+}
+
+.font-decorative {
+  font-family: 'Cinzel Decorative', 'Cinzel', serif;
+}
+
+.font-chronicle {
+  font-family: 'EB Garamond', Georgia, serif;
+}
+
+.glow-gold {
+  box-shadow: 0 0 24px rgba(200, 168, 75, 0.12), inset 0 1px 0 rgba(200, 168, 75, 0.09);
+}
+
+.glow-gold-strong {
+  box-shadow: 0 0 36px rgba(200, 168, 75, 0.2), inset 0 1px 0 rgba(200, 168, 75, 0.14);
+}
+
+.text-gold {
+  color: var(--gold);
+}
+
+.bg-elevated {
+  background-color: var(--background-elevated);
+}
+
+.text-parchment {
+  color: #d0c8b0;
+}
+
+.text-archive-muted {
+  color: #746a5a;
+}
+
+.vaelthorn-page {
+  position: relative;
+  z-index: 1;
+}
+
+.archive-panel {
+  position: relative;
+  border: 1px solid rgba(200, 168, 75, 0.16);
+  background: linear-gradient(135deg, rgba(20, 18, 16, 0.98) 0%, rgba(12, 11, 9, 0.98) 100%);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(200, 168, 75, 0.03);
+}
+
+.archive-panel-soft {
+  border: 1px solid rgba(200, 168, 75, 0.12);
+  background: linear-gradient(180deg, rgba(18, 16, 14, 0.96) 0%, rgba(10, 9, 8, 0.96) 100%);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.28);
+}
+
+.gold-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.gold-divider::before,
+.gold-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+}
+
+.gold-divider::before {
+  background: linear-gradient(90deg, transparent, rgba(200, 168, 75, 0.42));
+}
+
+.gold-divider::after {
+  background: linear-gradient(90deg, rgba(200, 168, 75, 0.42), transparent);
+}
+
+.gold-diamond {
+  width: 0.375rem;
+  height: 0.375rem;
+  transform: rotate(45deg);
+  background: rgba(200, 168, 75, 0.68);
+  box-shadow: 0 0 12px rgba(200, 168, 75, 0.22);
+}
+
+.corner-ornaments::before,
+.corner-ornaments::after {
+  content: "";
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  pointer-events: none;
+  border-color: rgba(200, 168, 75, 0.42);
+}
+
+.corner-ornaments::before {
+  top: 0;
+  left: 0;
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+
+.corner-ornaments::after {
+  right: 0;
+  bottom: 0;
+  border-right-width: 1px;
+  border-bottom-width: 1px;
+}
+
+.archive-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.625rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(200, 168, 75, 0.56);
+}

@@ -1,0 +1,27 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.font-display {
+  font-family: 'Cinzel', serif;
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.15), inset 0 1px 0 rgba(212, 175, 55, 0.1);
+}
+
+.glow-gold-strong {
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.25), inset 0 1px 0 rgba(212, 175, 55, 0.15);
+}
+
+.text-gold {
+  color: var(--gold);
+}
+
+.bg-elevated {
+  background-color: var(--background-elevated);
+}

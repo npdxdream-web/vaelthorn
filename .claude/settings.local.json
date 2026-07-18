@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan *)",
+      "Read(//c/laragon/bin/php//**)",
+      "Read(//usr/**)",
+      "Bash(/c/laragon/bin/php/php-8.3.30-Win32-vs16-x64/php.exe artisan *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(php -l app/Http/Controllers/ThreadController.php)",
+      "Bash(php -l app/Models/Thread.php)",
+      "Bash(php -l app/Filament/Resources/ThreadResource.php)",
+      "Bash(php -l app/Filament/Resources/PostResource.php)",
+      "Bash(npx tsc *)",
+      "Bash(.\\\\node_modules\\\\.bin\\\\tsc --noEmit)",
+      "PowerShell(.\\\\node_modules\\\\.bin\\\\tsc --noEmit 2>&1 | Select-Object -First 30)",
+      "PowerShell(node_modules\\\\.bin\\\\tsc.cmd --noEmit 2>&1 | Select-Object -First 30)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(npm run *)",
+      "Bash(php -l app/Console/Commands/PurgeDeletedThreads.php)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8765/admin)",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt http://localhost:8765/admin/login -I)",
+      "Bash(curl -s -c /tmp/fc.txt http://localhost:8766/admin/login)",
+      "Bash(grep -o '\"[^\"]*\"$')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost/admin)",
+      "Bash(curl -s -o /dev/null -w \"\\\\n%{http_code}\" http://vaelthorn.test/admin)",
+      "Bash(curl -s -c /tmp/vc.txt -b /tmp/vc.txt http://vaelthorn.test/admin/login)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -c /tmp/vc.txt http://vaelthorn.test/admin/login)",
+      "Bash(curl -s -c /tmp/mc3.txt http://vaelthorn.test/login)",
+      "PowerShell($env:PATH = \"C:\\\\laragon\\\\bin\\\\php\\\\php8.3.14;$env:PATH\"; cd c:\\\\laragon\\\\www\\\\vaelthorn; php artisan tinker --execute=\"echo \\\\App\\\\Models\\\\City::where\\('is_active', true\\)->first\\(\\)?->id . '|' . \\\\App\\\\Models\\\\City::where\\('is_active', true\\)->first\\(\\)?->name;\")"
+    ]
+  }
+}
