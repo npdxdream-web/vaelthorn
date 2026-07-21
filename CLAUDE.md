@@ -55,7 +55,6 @@ composer setup  # installs deps, creates .env, generates key, migrates, builds a
 - **Frontend**: React 18 + TypeScript SPA at `/app` and `/app/*` (catch-all Blade view)
 - **Build**: Vite 8 + `@vitejs/plugin-react` + Tailwind CSS 4 via `@tailwindcss/vite`
 - **Local dev**: Laragon (vaelthorn.test)
-- **AI**: Anthropic Claude API (summarize RP posts, generate World Chronicle, writing assistant)
 - **Notifications**: Discord Webhook
 
 ### Routing split
@@ -111,7 +110,7 @@ Admin panel (`/admin`) uses a **separate session cookie** (`vaelthorn_admin_sess
 | Table | Description |
 |---|---|
 | `threads` | RP story threads. Fields: id, city_id (was village_id), event_id, title, exp_override (nullable, explicit per-thread EXP override — see `LevelingService::resolveExpAmount`), status (open/pending/rejected/locked/archived), created_by, timestamps |
-| `posts` | RP posts. Fields: id, thread_id, character_id, content, status (pending/approved), ai_summary, timestamps |
+| `posts` | RP posts. Fields: id, thread_id, character_id, content, status (pending/approved), timestamps |
 | `post_reactions` | Witness System reactions. Fields: id, post_id, character_id, type, timestamps |
 
 #### Economy
@@ -136,10 +135,9 @@ Admin panel (`/admin`) uses a **separate session cookie** (`vaelthorn_admin_sess
 |---|---|
 | `badges` | Master badge catalog. Fields: id, name, icon, description, condition_type, condition_value |
 
-#### AI & Admin Tools
+#### Admin Tools
 | Table | Description |
 |---|---|
-| `ai_logs` | Claude API cost tracking. Fields: id, type, input_tokens, output_tokens, cost_thb, reference_id, timestamps |
 | `world_chronicles` | Freeform admin-written world lore, no longer required to link to an Event. Fields: id, event_id (nullable, nullOnDelete), title (nullable), category (nullable: Lore/History/War/Political/Other), content, generated_at, is_published |
 | `notifications` | In-app + Discord webhook log. Fields: id, type, target_id, message, channel, sent_at, is_read |
 
@@ -322,4 +320,4 @@ PHPUnit, two suites (`Unit`, `Feature`) under `tests/`. Test environment: in-mem
 
 ## Target Scale
 
-~20 active players/day, ~80 posts/day. Admin workload reduction is a critical design goal — AI assists with summarizing RP for review, drafting event descriptions, and generating World Chronicles after events close.
+~20 active players/day, ~80 posts/day. Admin workload reduction is a critical design goal. AI-assisted tooling (post summarization, chronicle generation) was considered but is out of scope — not implemented and not planned.

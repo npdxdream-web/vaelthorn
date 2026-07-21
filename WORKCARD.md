@@ -63,7 +63,7 @@ Admin สร้าง Event ใน City
 - [x] ItemResource, RewardResource
 - [x] CityResource, VillageResource, ThreadResource, PostResource
 - [x] BadgeResource (condition_type: posts/events/manual/first_post/first_event)
-- [x] WorldChronicleResource (AI-generated, is_published toggle)
+- [x] WorldChronicleResource (freeform admin-written, is_published toggle)
 
 #### UI Components
 - [x] Avatar Frame — SVG Art Deco, 3 styles (fan/step/simple), role-based color
@@ -101,22 +101,17 @@ Admin สร้าง Event ใน City
 - [ ] condition_type: `posts` (นับ approved posts), `events` (นับ events joined)
 - [ ] เขียน `character_badges` record + Notification
 
-#### Priority 2 — AI Features
+#### Priority 2 — AI Features — **ตัดออกจาก scope (2026-07-21)**
 
-**2.1 Post Summarizer**
-- [ ] Admin กด "Summarize" บน PostResource → เรียก Claude API
-- [ ] เขียนผล → `posts.ai_summary`
-- [ ] บันทึก cost → `ai_logs`
+เดิมวางแผนไว้ 3 อย่าง (Post Summarizer, World Chronicle Generator, Writing Assistant —
+ทั้งหมดเรียก Claude API) แต่ไม่เคยถูกสร้างขึ้นจริงเลย (ไม่มี service class, ไม่มี route,
+ไม่มี UI) มีแค่ scaffolding ที่ยังไม่ได้ใช้งาน (`ai_logs` table, `posts.ai_summary` column,
+`ANTHROPIC_API_KEY` env placeholder) ตัดสินใจตัดออกจากระบบทั้งหมดเพื่อไม่ต้องพึ่ง
+external API ตอน deploy — ลบ scaffolding แล้ว (migration ใหม่ drop `ai_logs` +
+`posts.ai_summary`, ลบ env var, ลบ mention ใน CLAUDE.md)
 
-**2.2 World Chronicle Generator**
-- [ ] Admin กด "Generate Chronicle" บน EventResource (หลัง event closed)
-- [ ] Prompt: ส่ง approved post summaries ของ event ให้ Claude สร้าง Chronicle
-- [ ] บันทึก → `world_chronicles.content`, `is_published = false`
-- [ ] Admin review แล้ว publish
-
-**2.3 Writing Assistant**
-- [ ] ปุ่ม "Assist" ใน post form → เรียก Claude API ด้วย draft content
-- [ ] Return suggestions inline (ไม่แทนที่ content ของ player)
+World Chronicle ยังคงเป็นฟีเจอร์ที่ใช้ได้ปกติ — แค่ Admin เขียนเองแบบ freeform
+(ไม่มีปุ่ม generate)
 
 #### Priority 3 — Social & Engagement
 
@@ -259,6 +254,5 @@ resources/
 
 1. งานใน Priority 1 ควรเริ่มจากอะไรก่อนเพื่อให้ Core Loop ทำงานได้ end-to-end เร็วที่สุด?
 2. Badge Auto-Award ควรใช้ Laravel Observer หรือ Queue Job — trade-off คืออะไร?
-3. AI Features (Claude API) ควรออกแบบ rate limit และ cost control อย่างไรในระดับ ~80 posts/day?
-4. Witness System กับ Notification จะ integrate กันอย่างไรโดยไม่ให้ flood notifications?
-5. Post content เป็น Quill HTML — ควร sanitize ที่ Controller (save) หรือที่ View (display) หรือทั้งคู่?
+3. Witness System กับ Notification จะ integrate กันอย่างไรโดยไม่ให้ flood notifications?
+4. Post content เป็น Quill HTML — ควร sanitize ที่ Controller (save) หรือที่ View (display) หรือทั้งคู่?

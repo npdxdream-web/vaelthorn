@@ -11,7 +11,6 @@ class Post extends Model
         'character_id',
         'content',
         'status',
-        'ai_summary',
     ];
 
     public function thread()

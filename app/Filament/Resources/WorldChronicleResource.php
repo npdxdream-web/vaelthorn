@@ -69,7 +69,7 @@ class WorldChronicleResource extends Resource
                 ->required()
                 ->rows(20)
                 ->columnSpanFull()
-                ->helperText('เนื้อหาประวัติศาสตร์ที่ AI หรือ Admin เขียนขึ้น'),
+                ->helperText('เนื้อหาประวัติศาสตร์ที่ Admin เขียนขึ้น'),
         ]);
     }
 

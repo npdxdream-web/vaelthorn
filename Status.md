@@ -153,8 +153,42 @@ At this app's target scale (~20 users/day) these races are unlikely to bite ofte
 - **`migrate:fresh --seed` on real MySQL**: clean, confirmed via `SHOW COLUMNS`.
 - All migration/config edits verified to leave the MySQL code path byte-for-byte or functionally identical to before — SQLite-only branches added, nothing removed from the production path except adding `trustProxies` (additive) and reclassifying the `public` disk (backward compatible when `TIGRIS_BUCKET` is unset, which is exactly today's local/dev state).
 
-### Not done / still open
-- Still all uncommitted — with 8 real bugs now found and fixed across two passes (2 migration-portability, 2 storage/proxy config, 2 concurrency, 1 authorization, 1 enum), the case for committing in logically-scoped chunks soon is strong.
+### Not done / still open (superseded — this got committed next, see below)
+- ~~Still all uncommitted~~ — committed as 3 logically-scoped commits (rename+onboarding+economy backend, SPA rename fix, deploy-bugfixes+tests). Not yet pushed to `origin/main` (local is 3 commits ahead).
 - Did not audit every controller in the app (e.g. `ThreadController`, `EventController`, `NotificationController`, `CharacterController`, `WorldChronicleController` were read in earlier passes but not re-audited for concurrency/auth issues this pass) — focused on the newest, least-battle-tested systems (2026-07-18 economy/onboarding work) plus universal deploy-blockers (migrations, storage, proxy config). A full line-by-line audit of the entire controller layer was not performed.
-- Rate limiting (throttle on login/register/AI endpoints) and a superadmin-bootstrap command — flagged in the original pre-deploy checklist — are still not done; out of scope for "bugs," these are missing features/hardening.
+- Rate limiting (throttle on login/register — the "AI endpoints" part of this original item is now moot, see below) and a superadmin-bootstrap command — flagged in the original pre-deploy checklist — are still not done; out of scope for "bugs," these are missing features/hardening.
 - `Filament` admin panel resources (`KingdomResource`, `CraftingRecipeResource`, `TravelPermitResource`) were read during the earlier verification pass but have no automated test coverage — admin-side flows are still only manually-reasoned-about, not exercised by a test.
+
+---
+
+## Update 2026-07-21 (fourth pass) — AI feature removed from scope entirely
+
+User decided to cut the AI (Anthropic Claude API) feature out of the system and adjust deployment plans accordingly, rather than build/harden it before launch.
+
+### What existed: only unused scaffolding, no working integration
+Researched the full codebase (not just docs) before touching anything. Result: **the AI feature was never actually implemented.** No service class calls Anthropic, no `AiLog` model exists, no controller/route/Filament action triggers an AI call, no frontend UI for it (no "Summarize" button, no "Generate with AI" button, no writing-assist textarea). What existed was pure scaffolding, unused end-to-end:
+- `ai_logs` table (migration `2026_06_17_070032_create_ai_logs_table`) — no model, never queried or written to anywhere in `app/`.
+- `posts.ai_summary` column (migration `2026_06_17_070027_fix_posts_add_ai_summary`) — only referenced as a `Post::$fillable` entry; never read or displayed anywhere.
+- `ANTHROPIC_API_KEY` env placeholder in `.env`/`.env.example`/`.env.cloud.example` — not even registered in `config/services.php`, so it wasn't wired into the framework at all.
+- A single Thai helper-text string on `WorldChronicleResource`'s content field mentioning "AI หรือ Admin" (AI or Admin) — cosmetic label only, chronicles have always been 100% admin-authored freeform text.
+- `WORKCARD.md`'s "Priority 2 — AI Features" section (Post Summarizer, World Chronicle Generator, Writing Assistant) — all 3 items unchecked, unbuilt.
+
+This meant removal was low-risk cleanup, not unwinding a live integration.
+
+### Removed
+- New migrations `2026_07_21_000001_drop_ai_logs_table` and `2026_07_21_000002_drop_ai_summary_from_posts_table` (added as new migrations rather than editing the already-run originals, per standard practice — faithful `down()` on both for rollback).
+- `'ai_summary'` removed from `Post::$fillable`.
+- AI mention removed from `WorldChronicleResource`'s content field helper text.
+- `ANTHROPIC_API_KEY` removed from `.env`, `.env.example`, `.env.cloud.example` — one less production secret to configure.
+- `CLAUDE.md`: removed the AI stack bullet, the `ai_logs` schema table entry, `ai_summary` from the `posts` schema row, and reworded the Target Scale paragraph to explicitly note AI tooling was considered but is out of scope.
+- `WORKCARD.md`: reworded the WorldChronicleResource checklist item (was "AI-generated", now "freeform admin-written"), replaced the "Priority 2 — AI Features" task list with a dated note explaining the cut, removed the now-moot AI rate-limiting question from the open-questions list.
+
+### Verified after removal
+- `php artisan migrate` on the dev MySQL DB: both new migrations ran clean.
+- `migrate:fresh --seed` on a throwaway MySQL DB (same safe pattern as previous passes — dev DB untouched): clean from scratch with the 2 new migrations included.
+- `php artisan test`: still 8/8, 66 assertions, 0 failures.
+- `npm run build`: still clean.
+- Repo-wide grep for `anthropic|claude|ai_logs|ai_summary` (case-insensitive): zero remaining functional references — only the 4 migration files themselves (2 old creates + 2 new drops) and the intentional historical note in `WORKCARD.md`.
+
+### Deploy plan impact
+`ANTHROPIC_API_KEY` is no longer part of the production secrets checklist — one less thing to configure/rotate/monitor cost on when setting up Laravel Cloud env vars.
