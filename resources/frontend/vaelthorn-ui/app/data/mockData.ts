@@ -1,11 +1,11 @@
-export const cities = [
+export const kingdoms = [
   {
     id: "ironveil",
     name: "Ironveil",
     color: "#7a8c9e",
     icon: "⚔️",
     description: "The steel-clad fortress of the north, where blacksmiths forge legends.",
-    villages: [
+    cities: [
       { id: "forgeheart", name: "Forgeheart Square" },
       { id: "steelwatch", name: "The Steelwatch" },
       { id: "anvil-halls", name: "Anvil Halls" },
@@ -17,7 +17,7 @@ export const cities = [
     color: "#d94e3f",
     icon: "🔥",
     description: "A volcanic city where fire mages study ancient flames.",
-    villages: [
+    cities: [
       { id: "ashvale", name: "Ashvale Commons" },
       { id: "pyrestone", name: "Pyrestone District" },
       { id: "cinder-keep", name: "Cinder Keep" },
@@ -29,7 +29,7 @@ export const cities = [
     color: "#c9d4e5",
     icon: "🌙",
     description: "The luminous coastal haven where moonlight guides the way.",
-    villages: [
+    cities: [
       { id: "tidehaven", name: "Tidehaven Port" },
       { id: "lunar-grove", name: "Lunar Grove" },
       { id: "pearl-market", name: "Pearl Market" },
@@ -41,7 +41,7 @@ export const cities = [
     color: "#5a7c4e",
     icon: "🌿",
     description: "Deep forest sanctuary protected by ancient druids.",
-    villages: [
+    cities: [
       { id: "verdant-hollow", name: "Verdant Hollow" },
       { id: "root-chapel", name: "Root Chapel" },
       { id: "wildwood", name: "Wildwood Enclave" },
@@ -61,10 +61,9 @@ export const characters = {
   aelric: {
     id: "aelric",
     name: "Aelric Stormborne",
-    city: "ironveil",
-    cityName: "Ironveil",
-    cityColor: "#7a8c9e",
     kingdom: "Ironveil",
+    kingdomName: "Ironveil",
+    kingdomColor: "#7a8c9e",
     location: "Forgeheart Square",
     rank: "Veteran",
     role: "Battle Mage",
@@ -87,10 +86,9 @@ export const characters = {
   lyra: {
     id: "lyra",
     name: "Lyra Moonshadow",
-    city: "silversong",
-    cityName: "Silversong",
-    cityColor: "#c9d4e5",
     kingdom: "Silversong",
+    kingdomName: "Silversong",
+    kingdomColor: "#c9d4e5",
     location: "Lunar Grove",
     rank: "Legend",
     role: "Moon Priestess",
@@ -113,10 +111,9 @@ export const characters = {
   kael: {
     id: "kael",
     name: "Kael Emberhart",
-    city: "embercrest",
-    cityName: "Embercrest",
-    cityColor: "#d94e3f",
     kingdom: "Embercrest",
+    kingdomName: "Embercrest",
+    kingdomColor: "#d94e3f",
     location: "Pyrestone District",
     rank: "Traveler",
     role: "Fire Conjurer",
@@ -142,8 +139,8 @@ export const threads = [
   {
     id: "1",
     title: "The Lost Grimoire of Ashwyn",
-    village: "Forgeheart Square",
-    city: "Ironveil",
+    city: "Forgeheart Square",
+    kingdom: "Ironveil",
     author: characters.aelric,
     replies: 24,
     lastPost: "2 hours ago",
@@ -152,8 +149,8 @@ export const threads = [
   {
     id: "2",
     title: "Market Day at the Docks",
-    village: "Tidehaven Port",
-    city: "Silversong",
+    city: "Tidehaven Port",
+    kingdom: "Silversong",
     author: characters.lyra,
     replies: 67,
     lastPost: "1 day ago",
@@ -162,8 +159,8 @@ export const threads = [
   {
     id: "3",
     title: "Forging the Soulblade",
-    village: "Anvil Halls",
-    city: "Ironveil",
+    city: "Anvil Halls",
+    kingdom: "Ironveil",
     author: characters.aelric,
     replies: 41,
     lastPost: "3 hours ago",
@@ -172,8 +169,8 @@ export const threads = [
   {
     id: "4",
     title: "The Ember Ritual Begins",
-    village: "Pyrestone District",
-    city: "Embercrest",
+    city: "Pyrestone District",
+    kingdom: "Embercrest",
     author: characters.kael,
     replies: 15,
     lastPost: "5 hours ago",
@@ -182,8 +179,8 @@ export const threads = [
   {
     id: "5",
     title: "Shadows in the Wildwood",
-    village: "Wildwood Enclave",
-    city: "Thornhaven",
+    city: "Wildwood Enclave",
+    kingdom: "Thornhaven",
     author: characters.lyra,
     replies: 33,
     lastPost: "8 hours ago",

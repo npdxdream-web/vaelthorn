@@ -21,19 +21,19 @@ export function CharacterPage() {
 
       {/* Character Header */}
       <div className="glow-gold-strong mb-8 overflow-hidden rounded-xl border-2 border-[#D4AF37]/50 bg-[#1a1a1a]">
-        <div 
+        <div
           className="border-b px-8 py-6"
-          style={{ 
-            borderColor: character.cityColor + '40',
-            background: `linear-gradient(135deg, ${character.cityColor}15, transparent)`
+          style={{
+            borderColor: character.kingdomColor + '40',
+            background: `linear-gradient(135deg, ${character.kingdomColor}15, transparent)`
           }}
         >
           <div className="flex items-start gap-6">
-            <div 
+            <div
               className="flex h-32 w-32 items-center justify-center rounded-full border-4 bg-gradient-to-br p-1"
-              style={{ 
-                borderColor: character.cityColor,
-                backgroundImage: `linear-gradient(135deg, ${character.cityColor}, ${character.cityColor}80)`
+              style={{
+                borderColor: character.kingdomColor,
+                backgroundImage: `linear-gradient(135deg, ${character.kingdomColor}, ${character.kingdomColor}80)`
               }}
             >
               <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-[#1a1a1a]">
@@ -73,8 +73,8 @@ export function CharacterPage() {
           <div className="flex items-center gap-3">
             <MapPin className="h-5 w-5 text-[#B87333]" />
             <div>
-              <div className="text-xs text-[#686664]">Home City</div>
-              <div style={{ color: character.cityColor }}>{character.cityName}</div>
+              <div className="text-xs text-[#686664]">Home Kingdom</div>
+              <div style={{ color: character.kingdomColor }}>{character.kingdomName}</div>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -109,7 +109,7 @@ export function CharacterPage() {
                   {thread.title}
                 </h3>
                 <div className="flex items-center gap-3 text-sm text-[#a8a6a3]">
-                  <span>{thread.village}</span>
+                  <span>{thread.city}</span>
                   <span>•</span>
                   <span>{thread.replies} replies</span>
                   <span>•</span>

@@ -35,11 +35,11 @@ export function CharacterModule() {
           to={`/character/${character.id}`}
           onClick={() => setCollapsed(false)}
           className="flex items-center gap-3 rounded-full border bg-[#141210]/95 px-4 py-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur transition-all hover:bg-[#1a1713]"
-          style={{ borderColor: character.cityColor }}
+          style={{ borderColor: character.kingdomColor }}
         >
           <div
             className="flex h-10 w-10 items-center justify-center rounded-full border-2 bg-gradient-to-br from-[#7a8c9e] to-[#5a6c7e]"
-            style={{ borderColor: character.cityColor }}
+            style={{ borderColor: character.kingdomColor }}
           >
             <span className="text-sm text-[#e8e6e3]">A</span>
           </div>

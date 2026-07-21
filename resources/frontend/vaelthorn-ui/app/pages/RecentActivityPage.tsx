@@ -123,7 +123,7 @@ function ThreadCard({
           <div className="flex flex-wrap items-center gap-3 text-xs text-[#746a5a]">
             <span className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />
-              {thread.village}
+              {thread.city}
             </span>
             <span className="flex items-center gap-1">
               <MessageSquare className="h-3 w-3" />

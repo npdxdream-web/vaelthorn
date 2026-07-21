@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { MapPin, ArrowRight } from "lucide-react";
 import { CharacterModule } from "../components/CharacterModule";
-import { cities, threads } from "../data/mockData";
+import { kingdoms, threads } from "../data/mockData";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { Button } from "../components/ui/button";
 
@@ -16,7 +16,7 @@ export function HomePage() {
               The World of Thiran
             </h1>
             <p className="text-[#a8a6a3]">
-              Choose your path across four legendary cities, each with their own tales to tell.
+              Choose your path across four legendary kingdoms, each with their own tales to tell.
             </p>
           </div>
 
@@ -30,26 +30,26 @@ export function HomePage() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f0f] via-transparent to-transparent" />
               
-              {/* City Markers */}
+              {/* Kingdom Markers */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="grid grid-cols-2 gap-16">
-                  {cities.map((city, idx) => (
-                    <Link 
-                      key={city.id}
-                      to={`/village/${city.villages[0].id}`}
+                  {kingdoms.map((kingdom) => (
+                    <Link
+                      key={kingdom.id}
+                      to={`/city/${kingdom.cities[0].id}`}
                       className="group relative flex flex-col items-center"
                     >
-                      <div 
+                      <div
                         className="mb-2 flex h-16 w-16 items-center justify-center rounded-full border-2 bg-[#1a1a1a]/90 text-2xl backdrop-blur-sm transition-all group-hover:scale-110 group-hover:bg-[#2a2a2a]"
-                        style={{ borderColor: city.color }}
+                        style={{ borderColor: kingdom.color }}
                       >
-                        {city.icon}
+                        {kingdom.icon}
                       </div>
-                      <span 
+                      <span
                         className="font-display text-sm transition-colors"
-                        style={{ color: city.color }}
+                        style={{ color: kingdom.color }}
                       >
-                        {city.name}
+                        {kingdom.name}
                       </span>
                     </Link>
                   ))}
@@ -58,36 +58,36 @@ export function HomePage() {
             </div>
           </div>
 
-          {/* City Cards */}
+          {/* Kingdom Cards */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {cities.map((city) => (
-              <div 
-                key={city.id}
+            {kingdoms.map((kingdom) => (
+              <div
+                key={kingdom.id}
                 className="group overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] transition-all hover:border-[#D4AF37]"
               >
-                <div 
+                <div
                   className="border-b px-4 py-3"
-                  style={{ borderColor: city.color + '40', backgroundColor: city.color + '10' }}
+                  style={{ borderColor: kingdom.color + '40', backgroundColor: kingdom.color + '10' }}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{city.icon}</span>
-                    <h3 className="font-display text-lg" style={{ color: city.color }}>
-                      {city.name}
+                    <span className="text-2xl">{kingdom.icon}</span>
+                    <h3 className="font-display text-lg" style={{ color: kingdom.color }}>
+                      {kingdom.name}
                     </h3>
                   </div>
                 </div>
                 <div className="p-4">
-                  <p className="mb-4 text-sm text-[#a8a6a3]">{city.description}</p>
+                  <p className="mb-4 text-sm text-[#a8a6a3]">{kingdom.description}</p>
                   <div className="space-y-2">
-                    {city.villages.map((village) => (
-                      <Link 
-                        key={village.id}
-                        to={`/village/${village.id}`}
+                    {kingdom.cities.map((city) => (
+                      <Link
+                        key={city.id}
+                        to={`/city/${city.id}`}
                         className="flex items-center justify-between rounded-lg border border-transparent px-3 py-2 text-sm transition-all hover:border-[#2a2a2a] hover:bg-[#141414]"
                       >
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-[#a8a6a3]" />
-                          <span className="text-[#e8e6e3]">{village.name}</span>
+                          <span className="text-[#e8e6e3]">{city.name}</span>
                         </div>
                         <ArrowRight className="h-4 w-4 text-[#686664]" />
                       </Link>
@@ -117,7 +117,7 @@ export function HomePage() {
                   <div className="flex items-center gap-4 text-xs text-[#a8a6a3]">
                     <span>{thread.author.name}</span>
                     <span>•</span>
-                    <span>{thread.village}</span>
+                    <span>{thread.city}</span>
                     <span>•</span>
                     <span>{thread.replies} replies</span>
                   </div>
