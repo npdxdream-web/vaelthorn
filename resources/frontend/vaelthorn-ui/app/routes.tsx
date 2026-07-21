@@ -1,7 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import { Layout } from "./components/Layout";
 import { HomePage } from "./pages/HomePage";
-import { VillagePage } from "./pages/VillagePage";
+import { CityPage } from "./pages/CityPage";
 import { ThreadPage } from "./pages/ThreadPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { CharacterPage } from "./pages/CharacterPage";
@@ -15,7 +15,7 @@ export const router = createBrowserRouter(
       Component: Layout,
       children: [
         { index: true, Component: HomePage },
-        { path: "village/:villageId", Component: VillagePage },
+        { path: "city/:cityId", Component: CityPage },
         { path: "thread/:threadId", Component: ThreadPage },
         { path: "register", Component: RegisterPage },
         { path: "character/:characterId", Component: CharacterPage },

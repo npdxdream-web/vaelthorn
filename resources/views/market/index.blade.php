@@ -58,6 +58,13 @@
         <p class="font-chronicle text-lg text-text-muted">ซื้อขายไอเทมระหว่างผู้เล่น — ตลาดกลางแห่ง Vaelthorn</p>
     </div>
 
+    {{-- Section tabs --}}
+    <div class="mb-6 flex flex-wrap gap-2">
+        <span class="font-display rounded-full border border-gold/50 bg-gold/10 px-4 py-1.5 text-xs uppercase tracking-wider text-gold">Player Market</span>
+        <a href="{{ route('market.shop') }}" class="font-display rounded-full border border-border px-4 py-1.5 text-xs uppercase tracking-wider text-text-muted transition hover:text-gold hover:border-gold/30">Shop</a>
+        <a href="{{ route('blacksmith.index') }}" class="font-display rounded-full border border-border px-4 py-1.5 text-xs uppercase tracking-wider text-text-muted transition hover:text-gold hover:border-gold/30">Blacksmith</a>
+    </div>
+
     {{-- Search --}}
     <form method="GET" action="{{ route('market.index') }}" class="mb-5">
         @if(request('type'))

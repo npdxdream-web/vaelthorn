@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AppSetting;
+use App\Models\City;
 use App\Models\Notification;
-use App\Models\OnboardingSlot;
 use App\Models\Post;
 use App\Models\PostReaction;
 use App\Models\Thread;
 use App\Models\User;
-use App\Models\Village;
 use App\Services\LevelingService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -26,7 +24,7 @@ class ThreadController extends Controller
 
     public function show($id)
     {
-        $thread = Thread::with(['village.city', 'creator'])->findOrFail($id);
+        $thread = Thread::with(['city.kingdom', 'creator'])->findOrFail($id);
         $user   = Auth::user();
         $currentCharacter = $user->character;
 
@@ -43,8 +41,8 @@ class ThreadController extends Controller
 
         $characterEager = [
             'character' => fn ($q) => $q->withCount('posts'),
-            'character.city',
-            'character.currentCity',
+            'character.kingdom',
+            'character.currentKingdom',
             'character.stats',
             'character.badges',
         ];
@@ -69,7 +67,7 @@ class ThreadController extends Controller
         }
 
         $participants = $posts->where('status', 'approved')->pluck('character')->unique('id')->filter()->values();
-        $villages     = Village::with('city')->orderBy('name')->get();
+        $cities       = City::with('kingdom')->orderBy('name')->get();
 
         $notices     = $currentCharacter
             ? Notification::where('user_id', Auth::id())
@@ -82,30 +80,30 @@ class ThreadController extends Controller
             : collect();
 
         return view('thread', compact(
-            'thread', 'posts', 'participants', 'currentCharacter', 'villages',
+            'thread', 'posts', 'participants', 'currentCharacter', 'cities',
             'notices', 'unreadCount', 'myPosts'
         ));
     }
 
-    public function create($villageId)
+    public function create($cityId)
     {
-        $village = Village::with('city')->findOrFail($villageId);
-        $user    = Auth::user();
+        $city = City::with('kingdom')->findOrFail($cityId);
+        $user = Auth::user();
 
         if (! $user->isAdminGroup() && ! $user->character) {
             return redirect()->route('register')->with('warning', 'กรุณาสร้างตัวละครก่อนสร้างกระทู้');
         }
 
-        if (! $village->canWrite($user, $user->character)) {
-            return redirect()->route('village', $village->id)->with('error', 'คุณไม่มีสิทธิ์เขียนในพื้นที่นี้');
+        if (! $city->canWrite($user, $user->character)) {
+            return redirect()->route('city', $city->id)->with('error', 'คุณไม่มีสิทธิ์เขียนในพื้นที่นี้');
         }
 
-        return view('thread-create', compact('village'));
+        return view('thread-create', compact('city'));
     }
 
-    public function storeThread(Request $request, $villageId)
+    public function storeThread(Request $request, $cityId)
     {
-        $village   = Village::findOrFail($villageId);
+        $city      = City::findOrFail($cityId);
         $user      = Auth::user();
         $character = $user->character;
 
@@ -113,24 +111,13 @@ class ThreadController extends Controller
             return redirect()->route('register')->with('warning', 'กรุณาสร้างตัวละครก่อนสร้างกระทู้');
         }
 
-        // Level-0 onboarding gate
         $stats = $character->stats;
-        if ($stats && $stats->level === 0) {
-            if (! $village->is_training_zone) {
-                return back()->with('error', 'คุณยังไม่ผ่าน Onboarding — เขียนใน Training Zone ก่อนเพื่อเลื่อนขั้น');
-            }
-            if ($stats->stage_a_completed) {
-                return back()->with('error', 'คุณบันทึกตัวตนครบแล้ว เข้าร่วมภารกิจ Event Onboarding ต่อได้เลย');
-            }
-            $filledSlots = OnboardingSlot::where('character_id', $character->id)
-                ->where('status', 'filled')->count();
-            if ($filledSlots >= 3) {
-                return back()->with('error', 'คุณบันทึกตัวตนครบแล้ว เข้าร่วมภารกิจ Event Onboarding ต่อได้เลย');
-            }
+        if ($stats && $stats->level < 1) {
+            return back()->with('error', 'คุณยังไม่ผ่าน Onboarding — กรุณาทำแบบทดสอบให้เสร็จก่อน');
         }
 
-        // Village write gate (Level 1+)
-        if (! $village->canWrite($user, $character)) {
+        // City write gate (Level 1+)
+        if (! $city->canWrite($user, $character)) {
             return back()->with('error', 'คุณไม่มีสิทธิ์เขียนในพื้นที่นี้');
         }
 
@@ -140,16 +127,15 @@ class ThreadController extends Controller
             'action'  => 'in:draft,submit',
         ]);
 
-        $isTrainingZonePost = $stats && $stats->level === 0 && $village->is_training_zone;
-        $isLivePost         = ! $isTrainingZonePost && ($stats?->level >= 1) && ! $village->require_approval;
+        $isLivePost = ($stats?->level >= 1) && ! $city->require_approval;
 
-        $postStatus   = ($isTrainingZonePost || $isLivePost) ? 'approved' : 'pending';
+        $postStatus   = $isLivePost ? 'approved' : 'pending';
         $threadStatus = $isLivePost
             ? 'approved'
-            : (($request->input('action') === 'draft' && ! $isTrainingZonePost) ? 'draft' : 'pending');
+            : ($request->input('action') === 'draft' ? 'draft' : 'pending');
 
         $thread = Thread::create([
-            'village_id' => $village->id,
+            'city_id'    => $city->id,
             'created_by' => $user->id,
             'title'      => $request->input('title'),
             'status'     => $threadStatus,
@@ -162,12 +148,7 @@ class ThreadController extends Controller
             'status'       => $postStatus,
         ]);
 
-        if ($isTrainingZonePost) {
-            $this->leveling->handleTrainingZonePost($post);
-            $filledNow = OnboardingSlot::where('character_id', $character->id)
-                ->where('status', 'filled')->count();
-            $msg = "บันทึกตัวตนสำเร็จ! ({$filledNow}/3)";
-        } elseif ($isLivePost) {
+        if ($isLivePost) {
             $this->dispatchThreadReplyNotifications($thread, $post);
             $this->leveling->handlePostApproved($post);
             $msg = 'โพสต์ขึ้นแล้ว!';
@@ -180,7 +161,7 @@ class ThreadController extends Controller
 
     public function edit($id)
     {
-        $thread = Thread::with(['village.city'])->findOrFail($id);
+        $thread = Thread::with(['city.kingdom'])->findOrFail($id);
         $user   = Auth::user();
 
         if (! $user->isAdminGroup()) {
@@ -192,9 +173,9 @@ class ThreadController extends Controller
             }
         }
 
-        $villages = Village::with('city')->orderBy('name')->get();
+        $cities = City::with('kingdom')->orderBy('name')->get();
 
-        return view('thread-edit', compact('thread', 'villages'));
+        return view('thread-edit', compact('thread', 'cities'));
     }
 
     public function update(Request $request, $id)
@@ -222,8 +203,8 @@ class ThreadController extends Controller
         ];
 
         if ($user->isAdminGroup()) {
-            if ($request->filled('village_id')) {
-                $data['village_id'] = $request->input('village_id');
+            if ($request->filled('city_id')) {
+                $data['city_id'] = $request->input('city_id');
             }
             if ($request->filled('status')) {
                 $data['status'] = $request->input('status');
@@ -264,8 +245,8 @@ class ThreadController extends Controller
             $request->validate(['message' => 'required|string|max:1000']);
             $thread->update(['status' => 'rejected', 'moderation_message' => $request->input('message')]);
         } elseif ($action === 'move') {
-            $request->validate(['village_id' => 'required|exists:villages,id']);
-            $thread->update(['village_id' => $request->input('village_id')]);
+            $request->validate(['city_id' => 'required|exists:cities,id']);
+            $thread->update(['city_id' => $request->input('city_id')]);
         } elseif ($action === 'unlock') {
             $thread->update(['status' => 'approved']);
         } elseif ($action === 'unarchive') {
@@ -286,10 +267,10 @@ class ThreadController extends Controller
             abort(403);
         }
 
-        $villageId = $thread->village_id;
+        $cityId = $thread->city_id;
         $thread->delete(); // soft delete — restorable within 3 days
 
-        return redirect()->route('village', $villageId)
+        return redirect()->route('city', $cityId)
             ->with('success', 'ย้ายกระทู้ไปถังขยะแล้ว — Admin กู้คืนได้ภายใน 3 วัน');
     }
 
@@ -446,7 +427,7 @@ class ThreadController extends Controller
 
     public function store(Request $request, $id)
     {
-        $thread    = Thread::with('village')->findOrFail($id);
+        $thread    = Thread::with('city')->findOrFail($id);
         $user      = Auth::user();
         $character = $user->character;
 
@@ -457,37 +438,19 @@ class ThreadController extends Controller
         $request->validate(['content' => 'required|string|min:1']);
 
         $stats = $character->stats;
-        $village = $thread->village;
-        $isTrainingZonePost = $stats && $stats->level === 0 && $village?->is_training_zone;
+        $city  = $thread->city;
 
-        // Level-0 onboarding gate
-        if ($stats && $stats->level === 0) {
-            $onboardingEventId = AppSetting::onboardingEventId();
-            $isOnboardingEvent = $onboardingEventId && $thread->event_id == $onboardingEventId;
-
-            if (! $isTrainingZonePost && ! $isOnboardingEvent) {
-                return back()->with('error', 'คุณยังไม่ผ่าน Onboarding — ใช้ Training Zone หรือ Event Onboarding ก่อน');
-            }
-
-            if ($isTrainingZonePost) {
-                if ($stats->stage_a_completed) {
-                    return back()->with('error', 'คุณบันทึกตัวตนครบแล้ว เข้าร่วม Event Onboarding ต่อได้เลย');
-                }
-                $filledSlots = OnboardingSlot::where('character_id', $character->id)
-                    ->where('status', 'filled')->count();
-                if ($filledSlots >= 3) {
-                    return back()->with('error', 'คุณบันทึกตัวตนครบแล้ว เข้าร่วม Event Onboarding ต่อได้เลย');
-                }
-            }
+        if ($stats && $stats->level < 1) {
+            return back()->with('error', 'คุณยังไม่ผ่าน Onboarding — กรุณาทำแบบทดสอบให้เสร็จก่อน');
         }
 
-        // Village write gate (Level 1+)
-        if ($village && ! $village->canWrite($user, $character)) {
+        // City write gate (Level 1+)
+        if ($city && ! $city->canWrite($user, $character)) {
             return back()->with('error', 'คุณไม่มีสิทธิ์เขียนในพื้นที่นี้');
         }
 
-        $isLivePost = ! $isTrainingZonePost && ($stats?->level >= 1) && ! ($village?->require_approval);
-        $postStatus = ($isTrainingZonePost || $isLivePost) ? 'approved' : 'pending';
+        $isLivePost = ($stats?->level >= 1) && ! ($city?->require_approval);
+        $postStatus = $isLivePost ? 'approved' : 'pending';
 
         $post = Post::create([
             'thread_id'    => $thread->id,
@@ -495,13 +458,6 @@ class ThreadController extends Controller
             'content'      => $request->content,
             'status'       => $postStatus,
         ]);
-
-        if ($isTrainingZonePost) {
-            $this->leveling->handleTrainingZonePost($post);
-            $filledNow = OnboardingSlot::where('character_id', $character->id)
-                ->where('status', 'filled')->count();
-            return back()->with('success', "บันทึกตัวตนสำเร็จ! ({$filledNow}/3)");
-        }
 
         if ($isLivePost) {
             $this->dispatchThreadReplyNotifications($thread, $post);
@@ -516,25 +472,25 @@ class ThreadController extends Controller
 
     public function apiPosts($id)
     {
-        $thread   = Thread::with(['village.city', 'author.city'])->findOrFail($id);
+        $thread   = Thread::with(['city.kingdom', 'author.kingdom'])->findOrFail($id);
         $user     = Auth::user();
         $character = $user?->character;
         $isAdmin  = $user?->isAtLeastModerator() ?? false;
 
         if ($isAdmin) {
             $postsQuery = Post::where('thread_id', $thread->id)
-                ->with(['character.city', 'character.stats', 'character.user']);
+                ->with(['character.kingdom', 'character.stats', 'character.user']);
         } elseif ($character) {
             $postsQuery = Post::where('thread_id', $thread->id)
                 ->where(function ($q) use ($character) {
                     $q->where('status', 'approved')
                       ->orWhere('character_id', $character->id);
                 })
-                ->with(['character.city', 'character.stats']);
+                ->with(['character.kingdom', 'character.stats']);
         } else {
             $postsQuery = Post::where('thread_id', $thread->id)
                 ->where('status', 'approved')
-                ->with(['character.city', 'character.stats']);
+                ->with(['character.kingdom', 'character.stats']);
         }
 
         $posts = $postsQuery->oldest()->get()->map(function (Post $post) use ($character, $isAdmin) {
@@ -551,7 +507,7 @@ class ThreadController extends Controller
                 'character' => [
                     'id'   => $post->character?->id,
                     'name' => $post->character?->name ?? 'Unknown',
-                    'city' => $post->character?->city?->name,
+                    'kingdom' => $post->character?->kingdom?->name,
                     'stats' => $post->character?->stats?->mapWithKeys(fn ($s) => [$s->name => $s->value])->toArray() ?? [],
                 ],
             ];
@@ -569,12 +525,12 @@ class ThreadController extends Controller
                     'id'         => $thread->author?->id,
                     'name'       => $thread->author?->name ?? 'Unknown',
                     'avatar_url' => $thread->author?->avatar_url,
-                    'city'       => $thread->author?->city?->name,
+                    'kingdom'    => $thread->author?->kingdom?->name,
                 ],
-                'village' => [
-                    'id'   => $thread->village->id,
-                    'name' => $thread->village->name,
-                    'city' => $thread->village->city?->name,
+                'city' => [
+                    'id'      => $thread->city->id,
+                    'name'    => $thread->city->name,
+                    'kingdom' => $thread->city->kingdom?->name,
                 ],
             ],
             'posts'  => $posts,
@@ -588,7 +544,7 @@ class ThreadController extends Controller
 
     public function apiStore(Request $request, $id)
     {
-        $thread    = Thread::with('village')->findOrFail($id);
+        $thread    = Thread::with('city')->findOrFail($id);
         $user      = Auth::user();
         $character = $user->character;
 
@@ -599,37 +555,19 @@ class ThreadController extends Controller
         $request->validate(['content' => 'required|string|min:1']);
 
         $stats = $character->stats;
-        $village = $thread->village;
-        $isTrainingZonePost = $stats && $stats->level === 0 && $village?->is_training_zone;
+        $city  = $thread->city;
 
-        // Level-0 onboarding gate
-        if ($stats && $stats->level === 0) {
-            $onboardingEventId = AppSetting::onboardingEventId();
-            $isOnboardingEvent = $onboardingEventId && $thread->event_id == $onboardingEventId;
-
-            if (! $isTrainingZonePost && ! $isOnboardingEvent) {
-                return response()->json(['message' => 'คุณยังไม่ผ่าน Onboarding — ใช้ Training Zone หรือ Event Onboarding ก่อน'], 403);
-            }
-
-            if ($isTrainingZonePost) {
-                if ($stats->stage_a_completed) {
-                    return response()->json(['message' => 'คุณบันทึกตัวตนครบแล้ว เข้าร่วม Event Onboarding ต่อได้เลย'], 422);
-                }
-                $filledSlots = OnboardingSlot::where('character_id', $character->id)
-                    ->where('status', 'filled')->count();
-                if ($filledSlots >= 3) {
-                    return response()->json(['message' => 'คุณบันทึกตัวตนครบแล้ว เข้าร่วม Event Onboarding ต่อได้เลย'], 422);
-                }
-            }
+        if ($stats && $stats->level < 1) {
+            return response()->json(['message' => 'คุณยังไม่ผ่าน Onboarding — กรุณาทำแบบทดสอบให้เสร็จก่อน'], 403);
         }
 
-        // Village write gate (Level 1+)
-        if ($village && ! $village->canWrite($user, $character)) {
+        // City write gate (Level 1+)
+        if ($city && ! $city->canWrite($user, $character)) {
             return response()->json(['message' => 'คุณไม่มีสิทธิ์เขียนในพื้นที่นี้'], 403);
         }
 
-        $isLivePost = ! $isTrainingZonePost && ($stats?->level >= 1) && ! ($village?->require_approval);
-        $postStatus = ($isTrainingZonePost || $isLivePost) ? 'approved' : 'pending';
+        $isLivePost = ($stats?->level >= 1) && ! ($city?->require_approval);
+        $postStatus = $isLivePost ? 'approved' : 'pending';
 
         $post = Post::create([
             'thread_id'    => $thread->id,
@@ -638,12 +576,7 @@ class ThreadController extends Controller
             'status'       => $postStatus,
         ]);
 
-        if ($isTrainingZonePost) {
-            $this->leveling->handleTrainingZonePost($post);
-            $filledNow = OnboardingSlot::where('character_id', $character->id)
-                ->where('status', 'filled')->count();
-            $message = "บันทึกตัวตนสำเร็จ! ({$filledNow}/3)";
-        } elseif ($isLivePost) {
+        if ($isLivePost) {
             $this->dispatchThreadReplyNotifications($thread, $post);
             $this->leveling->handlePostApproved($post);
             $message = 'โพสต์ขึ้นแล้ว!';
@@ -739,7 +672,7 @@ class ThreadController extends Controller
         } elseif ($action === 'reject') {
             $thread->update(['status' => 'rejected', 'moderation_message' => $request->input('message')]);
         } elseif ($action === 'move') {
-            $thread->update(['village_id' => $request->input('village_id')]);
+            $thread->update(['city_id' => $request->input('city_id')]);
         } elseif ($action === 'unlock') {
             $thread->update(['status' => 'approved']);
         } elseif ($action === 'unarchive') {

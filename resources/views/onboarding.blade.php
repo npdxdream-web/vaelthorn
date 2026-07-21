@@ -41,7 +41,7 @@
 }
 /* ── Textarea override — chronicle font ──────────────────────── */
 .ob-textarea {
-    font-family: 'EB Garamond', Georgia, ui-serif, serif;
+    font-family: var(--font-chronicle);
     font-size: 1rem;
     line-height: 1.75;
 }
@@ -67,6 +67,7 @@
                 'subtitle'    => 'เจ้าเป็นใคร มาจากแผ่นดินใด',
                 'prompt'      => 'ก่อนที่ประตูจะเปิด เจ้าต้องเปิดเผยตัวตนของเจ้าให้แก่ผู้พิทักษ์ทราบ บอกเล่าถึงชื่อที่คนรู้จัก ดินแดนที่เจ้าจากมา และเชื้อสายที่หล่อหลอมเจ้าขึ้นมา ไม่ว่าจะเป็นนักรบจากทุ่งกว้าง พ่อมดจากหอคอยสูง หรือผู้พเนจรไร้รากเหง้า',
                 'placeholder' => 'เขียนเรื่องราวของเจ้าที่นี่...',
+                'example'     => 'ข้าคือ "เอลิน่า เวรินทร์" นักดาบเร่ร่อนจากหมู่บ้านเล็ก ๆ ริมชายแดนอาณาจักรออรันเทีย เกิดในตระกูลช่างตีดาบที่สืบทอดฝีมือกันมาสามชั่วอายุคน ผิวคล้ำจากแดดและมีแผลเป็นที่ปลายคิ้วซ้าย — ร่องรอยจากการฝึกดาบตั้งแต่วัยเด็ก',
             ],
             2 => [
                 'thaiNum'     => '๒',
@@ -74,6 +75,7 @@
                 'subtitle'    => 'อะไรนำพาเจ้ามาสู่ดินแดนนี้',
                 'prompt'      => 'ทุกก้าวย่างมีเหตุ ทุกการเดินทางมีจุดกำเนิด ผู้พิทักษ์ต้องการรู้ว่าสิ่งใดผลักดันให้เจ้าออกเดินทาง ไม่ว่าจะเป็นคำสาป พันธสัญญา ความสูญเสีย หรือเสียงเรียกที่เจ้าเองก็ยังไม่อาจอธิบายได้ บอกเล่าถึงเหตุนั้น',
                 'placeholder' => 'เล่าถึงสิ่งที่นำพาเจ้ามาที่นี่...',
+                'example'     => 'หมู่บ้านของข้าถูกเผาทำลายโดยกองโจรที่อ้างว่ารับใช้เจ้านครแห่งหนึ่ง ครอบครัวข้าไม่มีใครรอด ข้าเดินทางมาถึงดินแดนนี้เพื่อตามหาความจริงว่าใครคือผู้บงการเบื้องหลัง และเพื่อฝึกฝนตนเองให้แข็งแกร่งพอจะปกป้องคนที่เหลืออยู่',
             ],
             3 => [
                 'thaiNum'     => '๓',
@@ -81,6 +83,7 @@
                 'subtitle'    => 'เจ้าหวังจะตามหาสิ่งใด',
                 'prompt'      => 'บทสุดท้าย — หัวใจของการเดินทาง ผู้พิทักษ์จำเป็นต้องรู้ถึงสิ่งที่เจ้าแสวงหา ไม่ว่าจะเป็นสมบัติ คำตอบ ความแค้น ความรัก หรือสิ่งที่ยิ่งใหญ่กว่านั้น เพราะดินแดนนี้จะมอบให้เฉพาะผู้ที่รู้ว่าตนเองต้องการอะไร',
                 'placeholder' => 'สิ่งที่เจ้าแสวงหานั้นคืออะไร...',
+                'example'     => 'ข้าปรารถนาจะเป็นที่จดจำ ไม่ใช่ในฐานะผู้ล้างแค้น แต่ในฐานะผู้ปกป้อง ข้าอยากตั้งกลุ่มนักรบรับจ้างที่ปกป้องหมู่บ้านเล็ก ๆ ที่ไม่มีใครแลเห็น เหมือนที่ไม่มีใครมาช่วยหมู่บ้านของข้าในวันนั้น',
             ],
         ];
     @endphp
@@ -117,6 +120,21 @@
             บันทึกเรื่องราวของเจ้าทีละบท เพื่อที่ดินแดนนี้จะจดจำเจ้าได้
         </p>
     </header>
+
+    {{-- ── Rejection notice ──────────────────────────────────── --}}
+    @if($character->stats?->rejection_reason)
+        <div class="mb-10 border border-red-800/50 bg-red-950/20 px-6 py-5" style="border-radius:0.25rem">
+            <p class="font-display mb-2 text-xs uppercase tracking-[0.25em] text-red-400">
+                ผู้พิทักษ์ปฏิเสธบันทึกของเจ้า
+            </p>
+            <p class="font-chronicle text-sm italic leading-relaxed text-red-200/90">
+                {{ $character->stats->rejection_reason }}
+            </p>
+            <p class="mt-3 text-xs text-red-300/60">
+                กรุณาทบทวนและเขียนบันทึกทั้ง 3 บทใหม่อีกครั้ง
+            </p>
+        </div>
+    @endif
 
     {{-- ── Progress track ─────────────────────────────────────── --}}
     <div class="mb-12 px-4">
@@ -286,9 +304,28 @@
                         </div>
 
                         {{-- Prompt --}}
-                        <p class="font-chronicle mt-4 mb-5 text-sm italic leading-relaxed text-text/75">
+                        <p class="font-chronicle mt-4 mb-2 text-sm italic leading-relaxed text-text/75">
                             {{ $stage['prompt'] }}
                         </p>
+
+                        {{-- Reference-answer bubble tip --}}
+                        <div class="relative mb-5 inline-block">
+                            <button type="button"
+                                    class="font-display flex items-center gap-1.5 text-[11px] tracking-wider text-gold/60 transition hover:text-gold"
+                                    data-example-toggle>
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                ดูตัวอย่างคำตอบ
+                            </button>
+                            <div class="ob-example-bubble absolute left-0 top-full z-20 mt-2 hidden w-72 border border-gold/25 bg-bg-elevated p-4 shadow-lg sm:w-96"
+                                 style="border-radius:0.25rem"
+                                 data-example-bubble>
+                                <p class="font-chronicle text-xs italic leading-relaxed text-text-muted">
+                                    {{ $stage['example'] }}
+                                </p>
+                            </div>
+                        </div>
 
                         {{-- Textarea --}}
                         <div class="relative">
@@ -405,6 +442,21 @@
 
     function openBody(el)  { if (el) el.classList.add('is-open'); }
     function closeBody(el) { if (el) el.classList.remove('is-open'); }
+
+    // ── Reference-answer bubble toggle ───────────────────────────
+    document.querySelectorAll('[data-example-toggle]').forEach(btn => {
+        const bubble = btn.parentElement.querySelector('[data-example-bubble]');
+        if (!bubble) return;
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = bubble.classList.contains('hidden');
+            document.querySelectorAll('[data-example-bubble]').forEach(b => b.classList.add('hidden'));
+            if (isHidden) bubble.classList.remove('hidden');
+        });
+    });
+    document.addEventListener('click', () => {
+        document.querySelectorAll('[data-example-bubble]').forEach(b => b.classList.add('hidden'));
+    });
 
     // ── Wire ALL cards once (locked cards have disabled buttons) ─
     document.querySelectorAll('[data-stage-card]').forEach(card => {

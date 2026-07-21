@@ -18,10 +18,4 @@ class AppSetting extends Model
     {
         static::updateOrCreate(['key' => $key], ['value' => $value]);
     }
-
-    public static function onboardingEventId(): ?int
-    {
-        $val = static::get('onboarding_event_id');
-        return $val ? (int) $val : null;
-    }
 }

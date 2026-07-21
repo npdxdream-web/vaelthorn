@@ -63,10 +63,15 @@ composer setup  # installs deps, creates .env, generates key, migrates, builds a
 | Path | Handler |
 |---|---|
 | `/register`, `/login`, `/logout` | `AuthController` (Blade + session auth) |
-| `/`, `/villages/*`, `/threads/*`, `/posts/*` | Protected web routes → Blade views |
-| `/api/villages/{id}`, `/api/threads/{id}/posts` | JSON API consumed by React |
+| `/onboarding`, `/onboarding/stage`, `/choose-kingdom` | `OnboardingController`, `KingdomSelectionController` |
+| `/`, `/cities/*`, `/threads/*`, `/posts/*` | Protected web routes → Blade views |
+| `/market/shop*` | `ShopController` (buy crafted goods with gold or materials) |
+| `/blacksmith*` | `BlacksmithController` (multi-player crafting orders) |
+| `/api/cities/{id}`, `/api/threads/{id}/posts` | JSON API consumed by React |
 | `/app`, `/app/{any}` | Catch-all → React SPA |
 | `/admin/*` | Filament panel |
+
+> **Terminology note**: as of the 2026-07-18 restructure, `CityController`/`/cities/*` is the **sub-city tier** (was `VillageController`/`/villages/*`), and `Kingdom` is the top-level tier (was the `City` model/`cities` table). See Database Schema below.
 
 ### Session separation
 
@@ -76,43 +81,49 @@ Admin panel (`/admin`) uses a **separate session cookie** (`vaelthorn_admin_sess
 
 ## Database Schema
 
+> **2026-07-18 restructure**: the old 2-tier `cities` (5 kingdoms) → `villages` (sub-areas) hierarchy was renamed to a clearer 2-tier `kingdoms` → `cities` hierarchy (`cities` table was freed up by first renaming it to `kingdoms`, then `villages` → `cities`). Model classes: `Kingdom` (new) and `City` (renamed-in-place from `Village`). This is a straight rename, not a new concept — see [Status.md](Status.md) for the full migration list and current rollout state.
+
 ### All tables (in dependency order)
 
 #### Core
 | Table | Description |
 |---|---|
 | `users` | Auth + role. Fields: id, name, email, password, role, timestamps |
-| `characters` | One per user. Fields: id, user_id, name, status, role, avatar, current_city_id (FK→cities, nullOnDelete), gold, title, backstory, custom_frame, timestamps |
-| `character_stats` | 1:1 with character. Fields: id, character_id, level, exp, exp_to_next, hp, mana, str, agi, int, timestamps |
+| `characters` | One per user. Fields: id, user_id, name, status, role, avatar, kingdom_id (home Kingdom, FK→kingdoms, cascadeOnDelete, null until onboarding+kingdom choice complete), current_kingdom_id (FK→kingdoms, nullOnDelete, last-visited), current_city_id (FK→cities, nullOnDelete, last-visited sub-city), gold, title, backstory, custom_frame, timestamps |
+| `character_stats` | 1:1 with character. Fields: id, character_id, level, exp, exp_to_next, hp, mana, str, agi, int, stage_1/2/3_completed (onboarding essay gates), rejection_reason (nullable, set when admin sends onboarding back for revision), timestamps |
 | `character_badges` | Badges earned. Fields: id, character_id, badge_id, acquired_at |
 
 #### World
 | Table | Description |
 |---|---|
-| `cities` | 5 kingdoms. Fields: id, name, kingdom, description, is_locked, timestamps |
-| `villages` | Sub-areas per city. Fields: id, city_id, name, description, timestamps |
+| `kingdoms` | 5 kingdoms + Celestia (top-level tier, was `cities`). Fields: id, name, description, color, icon, is_active, timestamps |
+| `cities` | Sub-cities per kingdom (was `villages`). Fields: id, kingdom_id (FK→kingdoms), name, description, is_training_zone, write_min_level, write_min_role, require_approval, read_min_level, read_min_role, timestamps |
+| `travel_permits` | Grants a character temporary write-access to a non-home Kingdom. Fields: id, item_id (FK→items, its own minted `permit`-type Item), character_id, kingdom_id, granted_by (FK→users), valid_days, activated_at, expires_at, timestamps |
 
 #### Event System
 | Table | Description |
 |---|---|
-| `events` | Admin-created events. Fields: id, title, type (flash/location/story_arc/crisis), city_id, created_by, status (draft/active/closed/archived), description, start_at, end_at, timestamps |
+| `events` | Admin-created events. Fields: id, title, type (flash/location/story_arc/crisis), kingdom_id (was city_id), created_by, status (draft/active/closed/archived), description, start_at, end_at, timestamps |
 | `event_participants` | Characters joined. Fields: id, event_id, character_id, joined_at. Unique: (event_id, character_id) |
 | `event_requirements` | Stat/item gates. Fields: id, event_id, req_type (stat/item/level/city), req_key, min_value |
 
 #### RP System
 | Table | Description |
 |---|---|
-| `threads` | RP story threads. Fields: id, village_id, event_id, title, status (open/pending/rejected/locked/archived), created_by, timestamps |
+| `threads` | RP story threads. Fields: id, city_id (was village_id), event_id, title, exp_override (nullable, explicit per-thread EXP override — see `LevelingService::resolveExpAmount`), status (open/pending/rejected/locked/archived), created_by, timestamps |
 | `posts` | RP posts. Fields: id, thread_id, character_id, content, status (pending/approved), ai_summary, timestamps |
 | `post_reactions` | Witness System reactions. Fields: id, post_id, character_id, type, timestamps |
 
 #### Economy
 | Table | Description |
 |---|---|
-| `items` | Master item catalog. Fields: id, name, type (weapon/armor/consumable/material/key_item/currency), rarity (common→legendary), description, bonus_str/agi/int/hp/mana, is_tradeable, is_active, timestamps |
+| `items` | Master item catalog. Fields: id, name, type (weapon/armor/consumable/material/key_item/currency/permit), rarity (common→legendary), description, bonus_str/agi/int/hp/mana, is_tradeable, is_active, timestamps |
 | `inventories` | Character inventory. Fields: id, character_id, item_id (FK→items), quantity, timestamps |
 | `market_listings` | Player market. Fields: id, seller_id, item_id, quantity, price, status, timestamps |
-| `crafting_recipes` | Craft formulas. Fields: id, result_item_id, material_item_id, quantity_needed |
+| `crafting_recipes` | Shop + Blacksmith craft formulas. Fields: id, name, category (shop/blacksmith), result_item_id, result_quantity, gold_cost (shop), craft_duration_minutes (blacksmith), is_active, timestamps |
+| `crafting_recipe_materials` | Materials required per recipe (many per recipe). Fields: id, recipe_id (FK→crafting_recipes), material_item_id (FK→items), quantity_required, timestamps |
+| `crafting_orders` | A blacksmith crafting job multiple characters can contribute materials to. Fields: id, recipe_id, created_by (FK→characters), token (UUID, shareable), status (open/crafting/ready/claimed), started_at, ready_at, claimed_by, claimed_at, timestamps |
+| `crafting_order_contributions` | Per-character material contributions to an order. Fields: id, order_id, character_id, item_id, quantity, timestamps |
 
 #### Rewards
 | Table | Description |
@@ -129,7 +140,7 @@ Admin panel (`/admin`) uses a **separate session cookie** (`vaelthorn_admin_sess
 | Table | Description |
 |---|---|
 | `ai_logs` | Claude API cost tracking. Fields: id, type, input_tokens, output_tokens, cost_thb, reference_id, timestamps |
-| `world_chronicles` | AI-generated world history after events. Fields: id, event_id, content, generated_at, is_published |
+| `world_chronicles` | Freeform admin-written world lore, no longer required to link to an Event. Fields: id, event_id (nullable, nullOnDelete), title (nullable), category (nullable: Lore/History/War/Political/Other), content, generated_at, is_published |
 | `notifications` | In-app + Discord webhook log. Fields: id, type, target_id, message, channel, sent_at, is_read |
 
 ### Key relationships
@@ -139,15 +150,20 @@ User (1) ──── (1) Character ──── (1) CharacterStat
                     │
                     ├──── (many) Inventory ──── (1) Item
                     ├──── (many) CharacterBadge
+                    ├──── (many) TravelPermit ──── (1) Kingdom
                     ├──── (many via event_participants) Event
                     └──── (many) RewardLog
 
-City (1) ──── (many) Village ──── (many) Thread ──── (many) Post
-City (1) ──── (many) Event
+Kingdom (1) ──── (many) City ──── (many) Thread ──── (many) Post
+Kingdom (1) ──── (many) Event
+Kingdom (1) ──── (many) Character (home kingdom_id / current_kingdom_id)
 
 Event (1) ──── (many) Reward
 Event (1) ──── (many) EventRequirement
 Event (1) ──── (many) EventParticipant
+
+CraftingRecipe (1) ──── (many) CraftingRecipeMaterial ──── (1) Item
+CraftingRecipe (1) ──── (many) CraftingOrder ──── (many) CraftingOrderContribution
 ```
 
 ---
@@ -156,11 +172,24 @@ Event (1) ──── (many) EventParticipant
 
 ### Core game loop
 ```
-Admin creates Event in a City
+Admin creates Event in a Kingdom
   → Players write RP Posts in Threads
   → Admin approves Posts
   → Rewards auto-sync to character Inventory + Stats
 ```
+
+### Onboarding flow (level 0 → 1)
+
+Pure 3-essay review, no in-game posting requirement. `character_stats.stage_1/2/3_completed` gate progress; `OnboardingService` handles submission + promotion:
+
+1. Character registers at level 0, no `kingdom_id`.
+2. Player submits 3 stage essays (`OnboardingController::submitStage`, stored as `OnboardingEntry` rows) via `/onboarding/stage`.
+3. Admin reviews each character in `CharacterResource`/`EditCharacter` — **Approve** or **Reject with a required reason** (`rejection_reason`). Reject is *not* terminal: it deletes the character's `OnboardingEntry` rows, resets all 3 stage flags to false, and notifies the player (`NotificationService::notifyOnboardingRejected`) — a normal "send back for revision" loop, character `status` stays `pending`.
+4. Once all 3 stages are approved, `OnboardingService::checkAllComplete()` promotes the character to level 1.
+5. Level-1 character with no `kingdom_id` is redirected to `/choose-kingdom` (`KingdomSelectionController`) to pick a **permanent** home Kingdom (enforced client- and server-side — 403 if already set).
+6. Only after a kingdom is chosen can the character post in Threads (`EnsureKingdomSelected` / `kingdom.selected` middleware gate).
+
+> Superseded: an older 2-stage system (Stage A = 3 auto-approved posts in an `is_training_zone` City to fill "onboarding slots"; Stage B = earn `stage_b_exp` in a designated onboarding Event) was fully removed 2026-07-18 — no more `onboarding_slots` table, no training-zone/event-based EXP gating pre-level-1.
 
 ### Character rank (computed, not stored)
 `auto_rank` is an appended attribute on Character model, derived from approved post count:
@@ -187,8 +216,8 @@ Players allocate stat points on level-up. Stat thresholds + items gate event eli
 ### Witness System
 `post_reactions` table powers the emotional core: at least one person witnesses and reflects back a character's growth. This is what makes players feel "seen."
 
-### 5 Kingdoms (cities)
-| Kingdom | Capital | Identity |
+### 5 Kingdoms
+| Kingdom | Capital (City) | Identity |
 |---|---|---|
 | Silvaria | Mokagi | Forest, magic |
 | Aurantia | Viente | Plains, knights, law |
@@ -196,6 +225,15 @@ Players allocate stat points on level-up. Stat thresholds + items gate event eli
 | Frostwell | Alasia | Snow, warriors |
 | Kyoren | Ainu | Eastern, spiritual |
 | Celestia | — | Neutral landmark |
+
+A character's home Kingdom is permanent once chosen (see Onboarding flow above). Writing in a non-home Kingdom's Cities requires an active `TravelPermit` for that Kingdom, unless the City is the character's `current_kingdom_id`/`current_city_id` (last-visited) or the character is moderator+.
+
+### Economy: Market, Shop, Blacksmith
+| System | Controller | Mechanic |
+|---|---|---|
+| Player Market | `MarketController` | Peer-to-peer listing/buying with gold |
+| Shop | `ShopController` | Buy admin-defined `crafting_recipes` (category `shop`) instantly, paying gold **or** turning in materials |
+| Blacksmith | `BlacksmithController` | Multi-player `CraftingOrder`: any character starts an order for a `blacksmith`-category recipe (shareable token URL), others contribute required materials (`CraftingOrderContribution`) until complete, then it "cooks" for `craft_duration_minutes` before the creator/contributors can claim the result item |
 
 ---
 
@@ -233,11 +271,16 @@ Sub-components: `resources/views/components/frames/_fan-corner.blade.php`, `_ste
 | Resource | Notes |
 |---|---|
 | UserResource | SuperAdmin only. Password field uses `dehydrated(fn($s)=>filled($s))` + `dehydrateStateUsing(Hash::make)` — never load hash into field |
-| CharacterResource | Admin approve/reject character status |
+| CharacterResource | Admin approve/reject onboarding (reject requires a `rejection_reason`, non-terminal — see Onboarding flow). Has `BadgesRelationManager` + `InventoryRelationManager` |
 | EventResource | Full CRUD + inline Rewards Repeater + Requirements Repeater. `created_by` auto-set in CreateEvent page |
 | ItemResource | Master item catalog |
 | RewardResource | Reward templates per event |
-| CityResource, VillageResource, ThreadResource, PostResource | Standard CRUD |
+| KingdomResource | Top-level Kingdom CRUD (replaces old CityResource). SuperAdmin-only delete |
+| CityResource | Sub-city CRUD (replaces old VillageResource) |
+| CraftingRecipeResource | Shop/Blacksmith recipe CRUD with inline materials Repeater (auto-manages `crafting_recipe_materials`) |
+| TravelPermitResource | Issuing a permit **mints a new dedicated `permit`-type Item** per issuance (not a shared item) and grants it via Inventory — see `CreateTravelPermit::mutateFormDataBeforeCreate` |
+| ThreadResource, PostResource | Standard CRUD |
+| WorldChronicleResource | Freeform `title`/`category` fields, no longer requires an Event link; `generated_at` auto-set on create |
 
 Custom Filament login page: `app/Filament/Pages/Auth/Login.php`
 
@@ -252,6 +295,8 @@ Entry: `main.tsx` → `app/App.tsx` (React Router) → routes in `app/routes.ts`
 UI components: `app/components/ui/` — Radix UI primitives + Tailwind
 Libraries: Recharts (charts), React DnD (drag-drop), React Hook Form (forms)
 
+**Note**: as of the 2026-07-18 restructure, the SPA has no in-app city/kingdom browsing UI (map icons removed from `Navbar`/`BottomNav`/`Footer`). City browsing happens via Blade (`/cities/{id}`); the SPA's `CityPage.tsx` (route `city/:cityId`, was `VillagePage.tsx`/`village/:villageId`) is reachable only by direct link, not primary nav. Market/Events/Chronicles/Rewards nav items render as plain `<a>` (full page load) rather than React Router `<Link>` since those pages aren't SPA-ported.
+
 ---
 
 ## Key Conventions
@@ -262,7 +307,10 @@ Libraries: Recharts (charts), React DnD (drag-drop), React Hook Form (forms)
 - **Reward distribution**: always write to `reward_logs` first before updating inventory/stats — prevents double-reward
 - **exp_to_next**: stored in `character_stats`, not computed — Admin/system sets the threshold per level
 - **item_id in inventories**: always FK→items, never free-text item_name
-- **current_city_id in characters**: FK→cities with nullOnDelete — never plain unsignedBigInteger
+- **current_city_id / current_kingdom_id in characters**: FK with nullOnDelete — never plain unsignedBigInteger
+- **kingdom_id in characters**: home Kingdom, permanent once set (post-onboarding) — treat as immutable outside `KingdomSelectionController::store`
+- **Onboarding rejection**: never set character `status` to a terminal `rejected` value — reset stage flags + store `rejection_reason` instead, so the player can resubmit (see `CharacterResource::rejectCharacter`)
+- **Crafting order completion**: check materials-complete and flip `crafting_orders.status` inside the same DB transaction as the triggering contribution — see `BlacksmithController::contribute`
 
 ---
 

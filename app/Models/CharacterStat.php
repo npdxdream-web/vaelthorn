@@ -19,23 +19,16 @@ class CharacterStat extends Model
         'stat_points_available',
         'daily_exp',
         'daily_exp_date',
-        'onboarding_intro_posts_count',
-        'onboarding_awakening_approved',
-        'onboarding_completed',
-        'stage_a_completed',
-        'stage_b_exp',
         'stage_1_completed',
         'stage_2_completed',
         'stage_3_completed',
+        'rejection_reason',
     ];
 
     protected $casts = [
-        'onboarding_awakening_approved' => 'boolean',
-        'onboarding_completed'          => 'boolean',
-        'stage_a_completed'             => 'boolean',
-        'stage_1_completed'             => 'boolean',
-        'stage_2_completed'             => 'boolean',
-        'stage_3_completed'             => 'boolean',
+        'stage_1_completed' => 'boolean',
+        'stage_2_completed' => 'boolean',
+        'stage_3_completed' => 'boolean',
     ];
 
     public function character()

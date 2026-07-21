@@ -1,26 +1,26 @@
 @extends('layouts.app')
 
-@section('title', $village->name . ' — Vaelthorn')
+@section('title', $city->name . ' — Vaelthorn')
 
 @section('content')
 <x-public.shell>
-    {{-- ── Left rail: Village Info ─────────────────────────────────────── --}}
+    {{-- ── Left rail: City Info ─────────────────────────────────────── --}}
     <x-slot:left>
         <div class="sticky top-20">
             <div class="archive-panel p-5">
-                <h3 class="font-display mb-4 text-base text-gold">Village Info</h3>
+                <h3 class="font-display mb-4 text-base text-gold">City Info</h3>
                 <div class="space-y-3 text-sm">
                     <div class="flex flex-col gap-0.5">
                         <span class="archive-label">Active Tales</span>
                         <span class="text-text">{{ $threads->where('status', 'approved')->count() }}</span>
                     </div>
                     <div class="border-t border-gold/10 pt-3 flex flex-col gap-0.5">
-                        <span class="archive-label">City</span>
-                        <span style="color:{{ $village->city->color }}">{{ $village->city->name }}</span>
+                        <span class="archive-label">Kingdom</span>
+                        <span style="color:{{ $city->kingdom->color }}">{{ $city->kingdom->name }}</span>
                     </div>
                     <div class="border-t border-gold/10 pt-3 flex flex-col gap-0.5">
                         <span class="archive-label">Region</span>
-                        <span class="text-text">{{ $village->name }}</span>
+                        <span class="text-text">{{ $city->name }}</span>
                     </div>
                 </div>
             </div>
@@ -34,18 +34,18 @@
                 <div class="mb-2 flex items-center gap-2 text-sm text-text-muted">
                     <a href="{{ route('home') }}" class="hover:text-gold">Thiran</a>
                     <span>/</span>
-                    <span style="color:{{ $village->city->color }}">{{ $village->city->name }}</span>
+                    <span style="color:{{ $city->kingdom->color }}">{{ $city->kingdom->name }}</span>
                     <span>/</span>
-                    <span class="text-text">{{ $village->name }}</span>
+                    <span class="text-text">{{ $city->name }}</span>
                 </div>
-                <h1 class="font-decorative mb-2 text-3xl tracking-wide text-gold">{{ $village->name }}</h1>
-                @if($village->description)
-                    <p class="font-chronicle mb-4 text-lg leading-relaxed text-text-muted">{{ $village->description }}</p>
+                <h1 class="font-decorative mb-2 text-3xl tracking-wide text-gold">{{ $city->name }}</h1>
+                @if($city->description)
+                    <p class="font-chronicle mb-4 text-lg leading-relaxed text-text-muted">{{ $city->description }}</p>
                 @endif
 
                 <div class="flex items-center gap-3">
                     @if($canWrite ?? true)
-                        <a href="{{ route('thread.create', $village->id) }}"
+                        <a href="{{ route('thread.create', $city->id) }}"
                            class="btn-primary gap-2">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -94,7 +94,7 @@
                                         @endif
                                     </div>
                                     <div class="flex items-center gap-2 text-sm text-text-muted">
-                                        <span>{{ $village->name }}</span>
+                                        <span>{{ $city->name }}</span>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-1 text-sm text-text-muted shrink-0">
@@ -119,7 +119,7 @@
                     </a>
                 @empty
                     <div class="archive-panel-soft p-12 text-center text-text-subtle">
-                        ยังไม่มีกระทู้ในพื้นที่นี้ — <a href="{{ route('thread.create', $village->id) }}" class="text-gold hover:underline">เริ่มกระทู้แรก</a>
+                        ยังไม่มีกระทู้ในพื้นที่นี้ — <a href="{{ route('thread.create', $city->id) }}" class="text-gold hover:underline">เริ่มกระทู้แรก</a>
                     </div>
                 @endforelse
             </div>

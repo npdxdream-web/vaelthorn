@@ -1,4 +1,4 @@
-import { Flame, Scroll, Map, Users, BookOpen } from "lucide-react";
+import { Flame, Map, BookOpen } from "lucide-react";
 import { Link } from "react-router";
 
 export function Footer() {
@@ -34,21 +34,21 @@ export function Footer() {
               Explore
             </h3>
             <nav className="flex flex-col gap-2">
-              {[
-                { to: "/", icon: Map, label: "World Map" },
-                { to: "/village/iron-crossing", icon: Users, label: "Villages & Forums" },
-                { to: "/thread/1", icon: BookOpen, label: "Chronicles" },
-                { to: "/character/1", icon: Scroll, label: "Characters" },
-              ].map(({ to, icon: Icon, label }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className="flex items-center gap-2 text-sm text-[#746a5a] transition-colors hover:text-[#c8a84b]"
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
-                </Link>
-              ))}
+              <Link
+                to="/"
+                className="flex items-center gap-2 text-sm text-[#746a5a] transition-colors hover:text-[#c8a84b]"
+              >
+                <Map className="h-3.5 w-3.5" />
+                World Map
+              </Link>
+              {/* /chronicles is a Blade page, not part of this SPA yet — full navigation */}
+              <a
+                href="/chronicles"
+                className="flex items-center gap-2 text-sm text-[#746a5a] transition-colors hover:text-[#c8a84b]"
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                Chronicles
+              </a>
             </nav>
           </div>
 

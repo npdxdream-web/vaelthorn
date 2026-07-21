@@ -30,11 +30,12 @@ class Notification extends Model
         }
 
         return match ($this->link_type) {
-            'thread'    => route('thread', $this->link_id),
-            'event'     => route('events.show', $this->link_id),
-            'inventory' => route('inventory'),
-            'character' => route('character.show', $this->link_id),
-            default     => null,
+            'thread'         => route('thread', $this->link_id),
+            'event'          => route('events.show', $this->link_id),
+            'inventory'      => route('inventory'),
+            'character'      => route('character.show', $this->link_id),
+            'council_letter' => route('council.show', $this->link_id),
+            default          => null,
         };
     }
 

@@ -3,32 +3,46 @@
 namespace App\Http\Controllers;
 
 use App\Models\WorldChronicle;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class WorldChronicleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $chronicles = WorldChronicle::where('is_published', true)
-            ->with('event.city')
-            ->latest('generated_at')
-            ->paginate(10);
+        $category = $request->input('category');
+
+        $query = WorldChronicle::where('is_published', true)
+            ->with(['event.kingdom', 'kingdom'])
+            ->latest('generated_at');
+
+        if ($category) {
+            $query->where('category', $category);
+        }
+
+        $chronicles = $query->paginate(10)->withQueryString();
+
+        $categories = WorldChronicle::where('is_published', true)
+            ->whereNotNull('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
 
         $currentCharacter = Auth::user()->character
-            ?->load(['city', 'currentCity', 'stats', 'badges'])
+            ?->load(['kingdom', 'currentKingdom', 'currentCity', 'stats', 'badges'])
             ->loadCount('posts');
 
-        return view('chronicles.index', compact('chronicles', 'currentCharacter'));
+        return view('chronicles.index', compact('chronicles', 'categories', 'category', 'currentCharacter'));
     }
 
     public function show($id)
     {
         $chronicle = WorldChronicle::where('is_published', true)
-            ->with('event.city')
+            ->with(['event.kingdom', 'kingdom'])
             ->findOrFail($id);
 
         $currentCharacter = Auth::user()->character
-            ?->load(['city', 'currentCity', 'stats', 'badges'])
+            ?->load(['kingdom', 'currentKingdom', 'currentCity', 'stats', 'badges'])
             ->loadCount('posts');
 
         $prev = WorldChronicle::where('is_published', true)

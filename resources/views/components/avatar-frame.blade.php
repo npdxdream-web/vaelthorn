@@ -41,7 +41,7 @@ $mx  = 70;   // mid-x in viewBox (always 70)
             {{ $slot }}
         @else
             <span style="font-size:{{ round($size * 0.32) }}px;color:{{ $c }};
-                         font-family:'Cinzel Decorative','Cinzel',Georgia,serif;
+                         font-family:var(--font-decorative);
                          font-weight:700;line-height:1;
                          text-shadow:0 0 24px {{ $c }}88;">
                 {{ strtoupper(mb_substr($initial, 0, 1)) }}

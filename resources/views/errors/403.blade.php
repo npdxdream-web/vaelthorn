@@ -6,15 +6,15 @@
     $destination = $path;
 
     try {
-        if (preg_match('/^villages\/(\d+)/', $path, $m)) {
-            $place = \App\Models\Village::with('city')->find($m[1]);
-            if ($place) $destination = $place->name . ', ' . ($place->city?->name ?? '');
+        if (preg_match('/^cities\/(\d+)/', $path, $m)) {
+            $place = \App\Models\City::with('kingdom')->find($m[1]);
+            if ($place) $destination = $place->name . ', ' . ($place->kingdom?->name ?? '');
         } elseif (preg_match('/^threads\/(\d+)/', $path, $m)) {
-            $place = \App\Models\Thread::with('village.city')->find($m[1]);
-            if ($place) $destination = ($place->village?->name ?? '') . ', ' . ($place->village?->city?->name ?? '');
+            $place = \App\Models\Thread::with('city.kingdom')->find($m[1]);
+            if ($place) $destination = ($place->city?->name ?? '') . ', ' . ($place->city?->kingdom?->name ?? '');
         } elseif (preg_match('/^posts\/(\d+)/', $path, $m)) {
-            $place = \App\Models\Post::with('thread.village.city')->find($m[1]);
-            if ($place) $destination = ($place->thread?->village?->name ?? '') . ', ' . ($place->thread?->village?->city?->name ?? '');
+            $place = \App\Models\Post::with('thread.city.kingdom')->find($m[1]);
+            if ($place) $destination = ($place->thread?->city?->name ?? '') . ', ' . ($place->thread?->city?->kingdom?->name ?? '');
         } elseif (preg_match('/^admin/', $path)) {
             $destination = 'Council Chamber (Admin)';
         }
@@ -28,10 +28,10 @@
     {{-- Header --}}
     <div style="border-bottom:1px solid #c8a84b33; padding:24px 40px; display:flex; align-items:center; justify-content:space-between;">
       <div>
-        <span style="font-family:'Cinzel',serif; font-size:11px; letter-spacing:3px; color:#6b5f45; display:block; margin-bottom:7px;">
+        <span style="font-family:var(--font-display); font-size:11px; letter-spacing:3px; color:#6b5f45; display:block; margin-bottom:7px;">
           Kingdom of Vaelthorn
         </span>
-        <span style="font-family:'Cinzel',serif; font-size:20px; color:#c8a84b; letter-spacing:2px;">
+        <span style="font-family:var(--font-display); font-size:20px; color:#c8a84b; letter-spacing:2px;">
           Travel Permit
         </span>
       </div>
@@ -47,23 +47,23 @@
     {{-- Fields --}}
     <div style="padding:32px 40px;">
       <div style="display:flex; justify-content:space-between; align-items:baseline; padding:12px 0; border-bottom:0.5px solid #c8a84b15;">
-        <span style="font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; color:#4a4030;">Bearer</span>
+        <span style="font-family:var(--font-display); font-size:11px; letter-spacing:2px; color:#4a4030;">Bearer</span>
         <span style="font-family:'Crimson Text',serif; font-size:19px; color:#8a7a5a;">
           {{ auth()->check() ? auth()->user()->character?->name ?? auth()->user()->name : 'Unknown Traveler' }}
         </span>
       </div>
       <div style="display:flex; justify-content:space-between; align-items:baseline; padding:12px 0; border-bottom:0.5px solid #c8a84b15;">
-        <span style="font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; color:#4a4030;">Destination</span>
+        <span style="font-family:var(--font-display); font-size:11px; letter-spacing:2px; color:#4a4030;">Destination</span>
         <span style="font-family:'Crimson Text',serif; font-size:19px; color:#4a4030; font-style:italic;">
           {{ $destination }}
         </span>
       </div>
       <div style="display:flex; justify-content:space-between; align-items:baseline; padding:12px 0; border-bottom:0.5px solid #c8a84b15;">
-        <span style="font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; color:#4a4030;">Status</span>
+        <span style="font-family:var(--font-display); font-size:11px; letter-spacing:2px; color:#4a4030;">Status</span>
         <span style="font-family:'Crimson Text',serif; font-size:19px; color:#8B2020; font-style:italic;">ไม่ได้รับอนุญาต</span>
       </div>
       <div style="display:flex; justify-content:space-between; align-items:baseline; padding:12px 0;">
-        <span style="font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; color:#4a4030;">Issued by</span>
+        <span style="font-family:var(--font-display); font-size:11px; letter-spacing:2px; color:#4a4030;">Issued by</span>
         <span style="font-family:'Crimson Text',serif; font-size:19px; color:#3a3020; font-style:italic;">— ไม่มีตราประทับ —</span>
       </div>
 
@@ -84,11 +84,11 @@
     {{-- Footer --}}
     <div style="border-top:1px solid #c8a84b22; padding:20px 40px; display:flex; gap:12px; justify-content:center;">
       <a href="{{ url('/') }}"
-         style="font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; padding:13px 28px; background:#c8a84b; color:#0d0a03; text-decoration:none; display:inline-block;">
+         style="font-family:var(--font-display); font-size:11px; letter-spacing:2px; padding:13px 28px; background:#c8a84b; color:#0d0a03; text-decoration:none; display:inline-block;">
         กลับหน้าหลัก
       </a>
       <a href="mailto:{{ config('mail.from.address', 'admin@vaelthorn.test') }}"
-         style="font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; padding:13px 28px; background:transparent; border:0.5px solid #c8a84b33; color:#6b5f45; text-decoration:none; display:inline-block;">
+         style="font-family:var(--font-display); font-size:11px; letter-spacing:2px; padding:13px 28px; background:transparent; border:0.5px solid #c8a84b33; color:#6b5f45; text-decoration:none; display:inline-block;">
         ติดต่อ Admin
       </a>
     </div>

@@ -16,11 +16,11 @@ class RewardHistoryController extends Controller
         }
 
         $logs = RewardLog::where('character_id', $character->id)
-            ->with(['event.city', 'item'])
+            ->with(['event.kingdom', 'item'])
             ->latest('given_at')
             ->paginate(20);
 
-        $currentCharacter = $character->load(['city', 'currentCity', 'stats', 'badges'])->loadCount('posts');
+        $currentCharacter = $character->load(['kingdom', 'currentKingdom', 'currentCity', 'stats', 'badges'])->loadCount('posts');
 
         $totals = RewardLog::where('character_id', $character->id)->selectRaw('
             SUM(gold_received) as total_gold,

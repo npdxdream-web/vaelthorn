@@ -27,7 +27,7 @@ class MarketController extends Controller
 
         $listings   = $query->paginate(20)->withQueryString();
         $currentCharacter = Auth::user()->character
-            ?->load(['city', 'currentCity', 'stats', 'badges'])
+            ?->load(['kingdom', 'currentKingdom', 'currentCity', 'stats', 'badges'])
             ->loadCount('posts');
 
         return view('market.index', compact('listings', 'currentCharacter'));
@@ -46,7 +46,7 @@ class MarketController extends Controller
             ->get()
             ->filter(fn ($inv) => $inv->item?->is_tradeable && $inv->quantity > 0);
 
-        $currentCharacter = $character->load(['city', 'currentCity', 'stats', 'badges'])->loadCount('posts');
+        $currentCharacter = $character->load(['kingdom', 'currentKingdom', 'currentCity', 'stats', 'badges'])->loadCount('posts');
 
         return view('market.create', compact('character', 'inventory', 'currentCharacter'));
     }
@@ -127,18 +127,30 @@ class MarketController extends Controller
             return back()->withErrors(['buy' => 'Gold ไม่เพียงพอ (ต้องการ ' . number_format($listing->price) . ' Gold)']);
         }
 
-        DB::transaction(function () use ($buyer, $listing) {
-            $listing->update(['status' => 'sold']);
+        try {
+            DB::transaction(function () use ($buyer, $listing) {
+                // Row-lock the listing — without this, two concurrent buyers could both pass
+                // the active() check above and both purchase the same listing.
+                $locked = MarketListing::where('id', $listing->id)->lockForUpdate()->firstOrFail();
 
-            $buyer->decrement('gold', $listing->price);
-            $listing->seller->increment('gold', $listing->price);
+                if ($locked->status !== 'active') {
+                    throw new \RuntimeException('already_sold');
+                }
 
-            $inv = Inventory::firstOrCreate(
-                ['character_id' => $buyer->id, 'item_id' => $listing->item_id],
-                ['quantity' => 0]
-            );
-            $inv->increment('quantity', $listing->quantity);
-        });
+                $locked->update(['status' => 'sold']);
+
+                $buyer->decrement('gold', $listing->price);
+                $listing->seller->increment('gold', $listing->price);
+
+                $inv = Inventory::firstOrCreate(
+                    ['character_id' => $buyer->id, 'item_id' => $listing->item_id],
+                    ['quantity' => 0]
+                );
+                $inv->increment('quantity', $listing->quantity);
+            });
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['buy' => 'รายการนี้ถูกซื้อหรือยกเลิกไปแล้ว']);
+        }
 
         return back()->with('success', 'ซื้อ ' . $listing->item->name . ' เรียบร้อยแล้ว');
     }

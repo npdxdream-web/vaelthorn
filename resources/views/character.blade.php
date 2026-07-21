@@ -15,13 +15,14 @@
                 <div class="space-y-3 text-sm">
                     <div>
                         <span class="archive-label">Kingdom</span>
-                        <div class="mt-1 font-display text-sm" style="color:{{ $character->city->color ?? '#c8a84b' }}">
-                            {{ $character->city->name ?? '—' }}
+                        <div class="mt-1 font-display text-sm" style="color:{{ $character->kingdom->color ?? '#c8a84b' }}">
+                            {{ $character->kingdom->name ?? '—' }}
                         </div>
                     </div>
                     <div class="border-t border-gold/10 pt-3">
                         <span class="archive-label">Current Location</span>
-                        <div class="mt-1 text-text">{{ $character->currentCity->name ?? $character->city->name ?? '—' }}</div>
+                        @php $locKingdom = $character->currentKingdom ?? $character->kingdom; @endphp
+                        <div class="mt-1 text-text">{{ $locKingdom->name ?? '—' }}{{ $character->currentCity ? ', ' . $character->currentCity->name : '' }}</div>
                     </div>
                     <div class="border-t border-gold/10 pt-3">
                         <span class="archive-label">Rank</span>
@@ -110,7 +111,7 @@
                     :size="240"
                     :height="450"
                     :initial="mb_substr($character->name, 0, 1)"
-                    :color="$character->city->color ?? '#c8a84b'"
+                    :color="$character->kingdom->color ?? '#c8a84b'"
                 >
                     @if($character->avatar)
                         <img src="{{ $character->avatar_url }}" alt="{{ $character->name }}"
@@ -132,8 +133,8 @@
                 </div>
                 <h1 class="font-decorative mb-1 text-3xl text-gold">{{ $character->name }}</h1>
                 <p class="font-display mb-4 text-sm tracking-widest"
-                   style="color:{{ $character->city->color ?? '#c8a84b' }}">
-                    {{ $character->city->name ?? '—' }}
+                   style="color:{{ $character->kingdom->color ?? '#c8a84b' }}">
+                    {{ $character->kingdom->name ?? '—' }}
                 </p>
 
                 <div class="gold-divider mb-4"><span class="gold-diamond"></span></div>
@@ -168,7 +169,7 @@
     <div class="archive-panel mb-6 p-6">
         <h2 class="font-display mb-4 text-base text-gold">Honours & Medals</h2>
         <div class="flex flex-wrap gap-3">
-            @foreach($character->badges as $cb)
+            @foreach($character->badges->sortByDesc('acquired_at') as $cb)
                 <div class="flex items-center gap-2 rounded border border-gold/20 bg-gold/5 px-3 py-2">
                     @if($cb->badge?->icon)
                         <span class="text-xl">{{ $cb->badge->icon }}</span>
@@ -177,6 +178,9 @@
                         <div class="font-display text-xs text-gold">{{ $cb->badge?->name ?? '—' }}</div>
                         @if($cb->badge?->description)
                             <div class="text-xs text-text-muted">{{ $cb->badge->description }}</div>
+                        @endif
+                        @if($cb->acquired_at)
+                            <div class="mt-0.5 text-[0.65rem] text-text-subtle">{{ $cb->acquired_at->format('d M Y') }}</div>
                         @endif
                     </div>
                 </div>
@@ -198,10 +202,10 @@
                     <span class="shrink-0 text-xs text-text-subtle">{{ $post->created_at->diffForHumans() }}</span>
                 </div>
                 <div class="flex items-center gap-2 text-xs text-text-muted">
-                    <span>{{ $post->thread->village->name ?? '—' }}</span>
+                    <span>{{ $post->thread->city->name ?? '—' }}</span>
                     <span>•</span>
-                    <span style="color:{{ $post->thread->village->city->color ?? '#c8a84b' }}">
-                        {{ $post->thread->village->city->name ?? '—' }}
+                    <span style="color:{{ $post->thread->city->kingdom->color ?? '#c8a84b' }}">
+                        {{ $post->thread->city->kingdom->name ?? '—' }}
                     </span>
                 </div>
                 <p class="mt-2 line-clamp-2 text-sm text-text-muted/80">

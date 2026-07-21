@@ -10,7 +10,7 @@
             <div class="archive-panel p-5">
                 <p class="archive-label mb-3">Profile</p>
                 <div class="space-y-2 text-sm text-text-muted">
-                    <div>Kingdom: <span class="font-display text-gold">{{ $character->city->name ?? '—' }}</span></div>
+                    <div>Kingdom: <span class="font-display text-gold">{{ $character->kingdom->name ?? '—' }}</span></div>
                     <div>Status: <span class="font-display {{ $character->status === 'approved' ? 'text-emerald-400' : 'text-amber-400' }}">{{ ucfirst($character->status) }}</span></div>
                     <div>Rank: <span class="font-display text-gold">{{ $character->auto_rank }}</span></div>
                 </div>
@@ -70,29 +70,17 @@
             </div>
         </div>
 
-        {{-- Name & Title --}}
+        {{-- Name --}}
         <div class="archive-panel p-6">
             <p class="archive-label mb-4">ข้อมูลพื้นฐาน</p>
-            <div class="grid gap-4 sm:grid-cols-2">
-                <div>
-                    <label class="archive-label mb-2 block">ชื่อตัวละคร <span class="text-red-400">*</span></label>
-                    <input type="text" name="name" required maxlength="100"
-                           value="{{ old('name', $character->name) }}"
-                           class="w-full rounded border border-gold/20 bg-bg-elevated px-3 py-2 font-display text-sm text-gold focus:border-gold/50 focus:outline-none">
-                    @error('name')
-                        <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
-                    @enderror
-                </div>
-                <div>
-                    <label class="archive-label mb-2 block">Title / ฉายา</label>
-                    <input type="text" name="title" maxlength="100"
-                           value="{{ old('title', $character->title) }}"
-                           placeholder="เช่น The Wandering Blade"
-                           class="w-full rounded border border-gold/20 bg-bg-elevated px-3 py-2 text-sm text-text focus:border-gold/50 focus:outline-none">
-                    @error('title')
-                        <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
-                    @enderror
-                </div>
+            <div>
+                <label class="archive-label mb-2 block">ชื่อตัวละคร <span class="text-red-400">*</span></label>
+                <input type="text" name="name" required maxlength="100"
+                       value="{{ old('name', $character->name) }}"
+                       class="w-full rounded border border-gold/20 bg-bg-elevated px-3 py-2 font-display text-sm text-gold focus:border-gold/50 focus:outline-none">
+                @error('name')
+                    <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
+                @enderror
             </div>
         </div>
 

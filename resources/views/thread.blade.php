@@ -103,10 +103,10 @@
 
 @section('content')
 <x-public.shell :character-status="$currentCharacter">
-    {{-- ── Left rail: Village Info ────────────────────────────────────────── --}}
+    {{-- ── Left rail: City Info ────────────────────────────────────────── --}}
     <x-slot:left>
         @php
-            $recentThreads = $thread->village?->threads()
+            $recentThreads = $thread->city?->threads()
                 ->where('id', '!=', $thread->id)
                 ->latest()
                 ->take(3)
@@ -121,12 +121,12 @@
                     </svg>
                 </div>
                 <div class="thread-side-body">
-                    <h3 class="font-display text-sm text-gold">{{ $thread->village->name }}</h3>
-                    <p class="mt-1 font-display text-[0.5rem] uppercase tracking-[0.2em] text-text-subtle">{{ $thread->village->city?->name ?? 'Unknown City' }}</p>
-                    <p class="mt-3 text-xs leading-relaxed text-text-muted/75">{{ $thread->village->description ?? 'A quiet chronicle hall where stories gather in shadow and gold.' }}</p>
+                    <h3 class="font-display text-sm text-gold">{{ $thread->city->name }}</h3>
+                    <p class="mt-1 font-display text-[0.5rem] uppercase tracking-[0.2em] text-text-subtle">{{ $thread->city->kingdom?->name ?? 'Unknown City' }}</p>
+                    <p class="mt-3 text-xs leading-relaxed text-text-muted/75">{{ $thread->city->description ?? 'A quiet chronicle hall where stories gather in shadow and gold.' }}</p>
                     <div class="mt-4 grid grid-cols-3 gap-2">
                         <div class="border border-gold/12 bg-black/20 p-2 text-center">
-                            <div class="font-display text-sm text-gold">{{ $thread->village?->threads()->count() ?? 1 }}</div>
+                            <div class="font-display text-sm text-gold">{{ $thread->city?->threads()->count() ?? 1 }}</div>
                             <div class="archive-label text-[0.44rem]">Threads</div>
                         </div>
                         <div class="border border-gold/12 bg-black/20 p-2 text-center">
@@ -158,19 +158,19 @@
                     @empty
                         <p class="text-xs text-text-subtle">No other threads yet.</p>
                     @endforelse
-                    <a href="{{ route('village', $thread->village->id) }}" class="mt-3 block border border-gold/12 px-3 py-2 text-center font-display text-[0.5rem] uppercase tracking-[0.18em] text-gold/55 hover:border-gold/35 hover:text-gold">All Threads</a>
+                    <a href="{{ route('city', $thread->city->id) }}" class="mt-3 block border border-gold/12 px-3 py-2 text-center font-display text-[0.5rem] uppercase tracking-[0.18em] text-gold/55 hover:border-gold/35 hover:text-gold">All Threads</a>
                 </div>
             </div>
 
             @if($participants->count())
             <div class="thread-side-panel">
                 <div class="thread-side-heading">
-                    <span>Village Council</span>
+                    <span>City Council</span>
                     <span class="text-gold/35">⌃</span>
                 </div>
                 <div class="thread-side-body">
                     @foreach($participants->take(3) as $participant)
-                        @php $pColor = $participant->city->color ?? '#c8a84b'; @endphp
+                        @php $pColor = $participant->kingdom->color ?? '#c8a84b'; @endphp
                         <div class="thread-mini-row">
                             <x-avatar-frame :rank="strtolower($participant->auto_rank)" :size="30" :initial="mb_substr($participant->name, 0, 1)" :color="$pColor">
                                 @if($participant->avatar)
@@ -190,7 +190,7 @@
 
             <div class="thread-side-panel">
                 <div class="thread-side-heading">
-                    <span>Village Lore</span>
+                    <span>City Lore</span>
                     <span class="text-gold/35">⌄</span>
                 </div>
             </div>
@@ -198,15 +198,15 @@
 
         <div class="hidden">
             <div class="archive-panel p-5">
-                <h3 class="font-display mb-4 text-base text-gold">{{ $thread->village->name }}</h3>
+                <h3 class="font-display mb-4 text-base text-gold">{{ $thread->city->name }}</h3>
                 <div class="space-y-3 text-sm">
                     <div class="flex flex-col gap-0.5">
                         <span class="archive-label">City</span>
-                        <span style="color:{{ $thread->village->city?->color ?? '#c8a84b' }}">{{ $thread->village->city?->name ?? '—' }}</span>
+                        <span style="color:{{ $thread->city->kingdom?->color ?? '#c8a84b' }}">{{ $thread->city->kingdom?->name ?? '—' }}</span>
                     </div>
                     <div class="border-t border-gold/10 pt-3 flex flex-col gap-0.5">
                         <span class="archive-label">Region</span>
-                        <span class="text-text">{{ $thread->village->name }}</span>
+                        <span class="text-text">{{ $thread->city->name }}</span>
                     </div>
                     <div class="border-t border-gold/10 pt-3 flex flex-col gap-0.5">
                         <span class="archive-label">Posts</span>
@@ -225,12 +225,12 @@
 
             {{-- Back link + title --}}
             <div class="thread-panel corner-ornaments mb-6 px-7 py-6">
-                <a href="{{ route('village', $thread->village->id) }}"
+                <a href="{{ route('city', $thread->city->id) }}"
                    class="mb-5 inline-flex items-center gap-2 font-display text-[0.6rem] uppercase tracking-[0.2em] text-text-subtle hover:text-gold">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                     </svg>
-                    Back to {{ $thread->village->name }}
+                    Back to {{ $thread->city->name }}
                 </a>
 
                 <div class="gold-divider mb-5"></div>
@@ -242,19 +242,19 @@
                 <div class="flex flex-wrap items-center gap-4">
                     {{-- Live / Closed dot badge --}}
                     @if($thread->isLive())
-                        <span style="display:inline-flex; align-items:center; gap:5px; font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:#2d7a3a; border:0.5px solid #2d7a3a55; padding:3px 10px;">
+                        <span style="display:inline-flex; align-items:center; gap:5px; font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#2d7a3a; border:0.5px solid #2d7a3a55; padding:3px 10px;">
                             <span style="width:6px; height:6px; border-radius:50%; background:#2d7a3a; display:inline-block; flex-shrink:0;"></span>
                             LIVE
                         </span>
                     @else
-                        <span style="display:inline-flex; align-items:center; gap:5px; font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:#8B2020; border:0.5px solid #8B202055; padding:3px 10px;">
+                        <span style="display:inline-flex; align-items:center; gap:5px; font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#8B2020; border:0.5px solid #8B202055; padding:3px 10px;">
                             <span style="width:6px; height:6px; border-radius:50%; background:#8B2020; display:inline-block; flex-shrink:0;"></span>
                             CLOSED
                         </span>
                     @endif
 
                     {{-- Location --}}
-                    @php $locationText = $thread->location_label ?? $thread->village?->city?->name; @endphp
+                    @php $locationText = $thread->location_label ?? $thread->city?->kingdom?->name; @endphp
                     @if($locationText)
                         <span style="font-family:'Crimson Text',serif; font-size:13px; color:#6b5f45; display:inline-flex; align-items:center; gap:4px;">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6b5f45" stroke-width="1.5"><circle cx="12" cy="10" r="3"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
@@ -433,13 +433,13 @@
                                       placeholder="ระบุเหตุผล..."></textarea>
                         </div>
 
-                        <div id="mod-village-wrap" class="hidden mb-3">
-                            <label class="mb-1 block text-xs text-text-muted">หมู่บ้านปลายทาง</label>
-                            <select name="village_id"
+                        <div id="mod-city-wrap" class="hidden mb-3">
+                            <label class="mb-1 block text-xs text-text-muted">เมืองปลายทาง</label>
+                            <select name="city_id"
                                     class="w-full rounded border border-[#2a2a2a] bg-[#0a0a0a] p-2 text-sm text-[#e8e6e3]">
-                                @foreach($villages as $v)
-                                    <option value="{{ $v->id }}" {{ $v->id == $thread->village_id ? 'selected' : '' }}>
-                                        {{ $v->city?->name }} → {{ $v->name }}
+                                @foreach($cities as $v)
+                                    <option value="{{ $v->id }}" {{ $v->id == $thread->city_id ? 'selected' : '' }}>
+                                        {{ $v->kingdom?->name }} → {{ $v->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -469,8 +469,8 @@
                         $isPending     = $post->status === 'pending';
                         $postCharacter = $post->character;
                         $postStats     = $postCharacter?->stats;
-                        $postCity      = $postCharacter?->city;
-                        $postLocation  = $postCharacter?->currentCity ?? $postCity;
+                        $postCity      = $postCharacter?->kingdom;
+                        $postLocation  = $postCharacter?->currentKingdom ?? $postCity;
                         $postColor     = $postCity?->color ?? '#c8a84b';
                         $postName      = $postCharacter?->name ?? 'Unknown Character';
                         $postRank      = $postCharacter?->title ?? $postCharacter?->auto_rank ?? 'Unrecorded Rank';
@@ -578,7 +578,7 @@
                                         style="background-color:{{ $postColor }}08">
                                     <div class="flex flex-wrap items-center gap-2">
                                         {{-- Frame / class badge --}}
-                                        <span style="font-family:'Cinzel',serif; font-size:8px; letter-spacing:2px; color:{{ $postColor }}; border:0.5px solid {{ $postColor }}44; padding:2px 8px; flex-shrink:0;">
+                                        <span style="font-family:var(--font-display); font-size:8px; letter-spacing:2px; color:{{ $postColor }}; border:0.5px solid {{ $postColor }}44; padding:2px 8px; flex-shrink:0;">
                                             {{ strtoupper($postCharacter?->custom_frame ?? $postCharacter?->auto_rank ?? 'Wanderer') }}
                                         </span>
                                         <span class="gold-diamond"></span>
@@ -612,7 +612,7 @@
                                             <input type="hidden" name="type" value="{{ $type }}">
                                             <button type="submit" style="
                                                 display:inline-flex; align-items:center; gap:5px;
-                                                font-family:'Cinzel',serif; font-size:10px; letter-spacing:1.5px;
+                                                font-family:var(--font-display); font-size:10px; letter-spacing:1.5px;
                                                 border:0.5px solid {{ $reacted ? $color.'88' : '#c8a84b22' }};
                                                 background:{{ $reacted ? $color.'15' : 'transparent' }};
                                                 color:{{ $reacted ? $color : '#6b6050' }};
@@ -632,11 +632,11 @@
                                     {{-- Status badge --}}
                                     <div>
                                         @if($post->status === 'approved')
-                                            <span style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:#2d7a3a; border:0.5px solid #2d7a3a44; padding:3px 10px;">APPROVED</span>
+                                            <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#2d7a3a; border:0.5px solid #2d7a3a44; padding:3px 10px;">APPROVED</span>
                                         @elseif($post->status === 'pending')
-                                            <span style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:#c8a84b; border:0.5px solid #c8a84b44; padding:3px 10px;">● PENDING</span>
+                                            <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#c8a84b; border:0.5px solid #c8a84b44; padding:3px 10px;">● PENDING</span>
                                         @else
-                                            <span style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:#8B2020; border:0.5px solid #8B202044; padding:3px 10px;">{{ strtoupper($post->status) }}</span>
+                                            <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#8B2020; border:0.5px solid #8B202044; padding:3px 10px;">{{ strtoupper($post->status) }}</span>
                                         @endif
                                     </div>
 
@@ -644,26 +644,26 @@
                                     @if($isAdmin || ($isPostOwner && $isPending))
                                     <div style="display:flex; align-items:center; gap:6px;">
                                         @if($isAdmin)
-                                        <span style="font-family:'Cinzel',serif; font-size:8px; letter-spacing:2px; color:#3a3020; margin-right:2px;">COUNCIL</span>
+                                        <span style="font-family:var(--font-display); font-size:8px; letter-spacing:2px; color:#3a3020; margin-right:2px;">COUNCIL</span>
                                         @endif
 
                                         @if($isAdmin && $isPending)
                                         <form method="POST" action="{{ route('post.approve', $post->id) }}" style="display:inline;">
                                             @csrf
-                                            <button type="submit" style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:1px; color:#2d7a3a; border:0.5px solid #2d7a3a55; background:transparent; padding:4px 11px; cursor:pointer;">✓ APPROVE</button>
+                                            <button type="submit" style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:#2d7a3a; border:0.5px solid #2d7a3a55; background:transparent; padding:4px 11px; cursor:pointer;">✓ APPROVE</button>
                                         </form>
                                         @endif
 
                                         @if($isAdmin || ($isPostOwner && $isPending))
                                         <a href="{{ route('post.edit', $post->id) }}"
-                                           style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:1px; color:#c8a84b; border:0.5px solid #c8a84b33; background:transparent; padding:4px 11px; text-decoration:none; display:inline-block;">✎ EDIT</a>
+                                           style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:#c8a84b; border:0.5px solid #c8a84b33; background:transparent; padding:4px 11px; text-decoration:none; display:inline-block;">✎ EDIT</a>
                                         @endif
 
                                         @if($isAdmin || ($isPostOwner && $isPending))
                                         <form method="POST" action="{{ route('post.destroy', $post->id) }}" style="display:inline;"
                                               onsubmit="return confirm('ลบโพสต์นี้?')">
                                             @csrf @method('DELETE')
-                                            <button type="submit" style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:1px; color:#6b3030; border:0.5px solid #6b303044; background:transparent; padding:4px 11px; cursor:pointer;">✕ DELETE</button>
+                                            <button type="submit" style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:#6b3030; border:0.5px solid #6b303044; background:transparent; padding:4px 11px; cursor:pointer;">✕ DELETE</button>
                                         </form>
                                         @endif
                                     </div>
@@ -686,92 +686,47 @@
                 // Onboarding gate check for level-0 characters
                 $viewerStats     = $currentCharacter?->stats;
                 $viewerIsLevel0  = $viewerStats && $viewerStats->level === 0;
-                $threadVillage   = $thread->village;
-                $isTrainingZone  = $threadVillage?->is_training_zone;
-                $obEventId       = \App\Models\AppSetting::onboardingEventId();
-                $isOnboardingEvt = $obEventId && $thread->event_id == $obEventId;
-                $replyBlocked    = $viewerIsLevel0 && ! $isTrainingZone && ! $isOnboardingEvt;
+                $threadCity   = $thread->city;
+                $replyBlocked    = $viewerIsLevel0;
 
-                // Village write gate check (Level 1+)
+                // City write gate check (Level 1+)
                 $writeBlocked = $currentCharacter
                     && ! auth()->user()->isAdminGroup()
-                    && $threadVillage
-                    && ! $threadVillage->canWrite(auth()->user(), $currentCharacter);
+                    && $threadCity
+                    && ! $threadCity->canWrite(auth()->user(), $currentCharacter);
 
                 $fullyBlocked = $replyBlocked || $writeBlocked;
-
-                // Progress data for the banner
-                $stageAFilled = $viewerIsLevel0
-                    ? \App\Models\OnboardingSlot::where('character_id', $currentCharacter->id)->where('status', 'filled')->count()
-                    : 0;
-                $obEventName  = $obEventId ? \App\Models\Event::find($obEventId)?->title : null;
-                $stageBReq    = config('leveling.stage_b_required_exp', 6);
             @endphp
 
             @if($fullyBlocked && $currentCharacter)
-            {{-- Reply blocked: onboarding gate (Level 0) or village write gate (Level 1+) --}}
+            {{-- Reply blocked: onboarding gate (Level 0) or city write gate (Level 1+) --}}
             <div class="thread-panel p-0">
                 <div style="padding:20px 24px; border-bottom:0.5px solid #c8a84b22; background:rgba(200,168,75,.04)">
 
                 @if($writeBlocked && ! $replyBlocked)
-                    {{-- Village write gate banner --}}
+                    {{-- City write gate banner --}}
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px">
-                        <span style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:2.5px; color:#c8a84b; border:0.5px solid #c8a84b55; padding:3px 10px">ZONE RESTRICTION</span>
-                        <span style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:#6b6050">พื้นที่จำกัดการเขียน</span>
+                        <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2.5px; color:#c8a84b; border:0.5px solid #c8a84b55; padding:3px 10px">ZONE RESTRICTION</span>
+                        <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#6b6050">พื้นที่จำกัดการเขียน</span>
                     </div>
                     <p style="color:#c4b898; font-size:14px">
                         พื้นที่นี้กำหนดให้เขียนได้เฉพาะผู้ที่ผ่านเกณฑ์ที่กำหนดเท่านั้น
-                        @if($threadVillage?->write_min_level > 0)
-                            — ต้องเป็น Level {{ $threadVillage->write_min_level }} ขึ้นไป
+                        @if($threadCity?->write_min_level > 0)
+                            — ต้องเป็น Level {{ $threadCity->write_min_level }} ขึ้นไป
                         @endif
                     </p>
                 @else
                     {{-- Onboarding gate banner --}}
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px">
-                        <span style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:2.5px; color:#c8a84b; border:0.5px solid #c8a84b55; padding:3px 10px">ONBOARDING</span>
-                        <span style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:#6b6050">ระบบนำทางผู้เล่นใหม่</span>
+                        <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2.5px; color:#c8a84b; border:0.5px solid #c8a84b55; padding:3px 10px">ONBOARDING</span>
+                        <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#6b6050">ระบบนำทางผู้เล่นใหม่</span>
                     </div>
-
-                    @if(! $viewerStats->stage_a_completed)
-                        <p style="color:#c4b898; font-size:14px; margin-bottom:10px">
-                            คุณกำลังอยู่ในช่วงบันทึกตน
-                            <strong style="color:#c8a84b">({{ $stageAFilled }}/3 บันทึกตัวตน)</strong>
-                            — เขียนให้ครบเพื่อเลื่อนขั้นภารกิจต่อ
-                        </p>
-                        <div style="display:flex; gap:6px; margin-top:8px">
-                            @for($s = 1; $s <= 3; $s++)
-                                <div style="
-                                    flex:1; height:6px; border-radius:3px;
-                                    background:{{ $s <= $stageAFilled ? '#c8a84b' : '#1e1c18' }};
-                                    border:0.5px solid {{ $s <= $stageAFilled ? '#c8a84b88' : '#2a2a2a' }};
-                                    transition:.3s;
-                                "></div>
-                            @endfor
-                        </div>
-                        <p style="color:#6b6050; font-size:12px; margin-top:10px; font-family:'Cinzel',serif; letter-spacing:1px">
-                            → ไปที่ Training Zone ใน Kingdom ของคุณเพื่อเขียนบันทึก
-                        </p>
-                    @else
-                        <p style="color:#c4b898; font-size:14px; margin-bottom:10px">
-                            บันทึกตัวตนสำเร็จแล้ว ✦ — เข้าร่วมภารกิจ
-                            <strong style="color:#c8a84b">{{ $obEventName ?? 'Event Onboarding' }}</strong>
-                            เพื่อเลื่อนขั้นเต็มตัว
-                            (<strong style="color:#c8a84b">{{ $viewerStats->stage_b_exp }}/{{ $stageBReq }} EXP</strong>)
-                        </p>
-                        <div style="display:flex; gap:4px; margin-top:8px">
-                            @for($e = 1; $e <= $stageBReq; $e++)
-                                <div style="
-                                    flex:1; height:6px; border-radius:3px;
-                                    background:{{ $e <= $viewerStats->stage_b_exp ? '#7ab0d4' : '#1e1c18' }};
-                                    border:0.5px solid {{ $e <= $viewerStats->stage_b_exp ? '#7ab0d488' : '#2a2a2a' }};
-                                    transition:.3s;
-                                "></div>
-                            @endfor
-                        </div>
-                        <p style="color:#6b6050; font-size:12px; margin-top:10px; font-family:'Cinzel',serif; letter-spacing:1px">
-                            → เขียน RP ใน Event Onboarding เพื่อสะสม EXP
-                        </p>
-                    @endif
+                    <p style="color:#c4b898; font-size:14px; margin-bottom:10px">
+                        คุณยังไม่ผ่าน Onboarding — ทำแบบทดสอบ 3 ด่านให้เสร็จก่อนจึงจะเขียนโพสต์ได้
+                    </p>
+                    <a href="{{ route('onboarding') }}" style="color:#6b6050; font-size:12px; margin-top:10px; font-family:var(--font-display); letter-spacing:1px; display:inline-block">
+                        → ไปที่หน้า Onboarding
+                    </a>
                 @endif
                 </div>
                 <div style="padding:14px 24px; opacity:.45; pointer-events:none">
@@ -781,7 +736,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                             </svg>
                         </span>
-                        <span style="font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; color:#6b6050">REPLY LOCKED</span>
+                        <span style="font-family:var(--font-display); font-size:11px; letter-spacing:2px; color:#6b6050">REPLY LOCKED</span>
                     </div>
                 </div>
             </div>
@@ -923,7 +878,7 @@
                         <span>Quick Actions</span>
                     </div>
                     <div class="thread-side-body">
-                        <a href="{{ route('thread.create', $thread->village->id) }}" class="right-flat-row">
+                        <a href="{{ route('thread.create', $thread->city->id) }}" class="right-flat-row">
                             <span>New Thread</span><span>›</span>
                         </a>
                         <a href="{{ route('chronicles.index') }}" class="right-flat-row">
@@ -1007,7 +962,7 @@
                 @endif
 
                 {{-- ── World Navigation — collapsible, default collapsed ── --}}
-                @php $navCity = $thread->village->city; @endphp
+                @php $navCity = $thread->city->kingdom; @endphp
                 <div class="thread-side-panel is-right is-collapsed" data-collapsible>
                     <div class="thread-side-heading rail-toggle-btn" onclick="railToggle(this)">
                         <span>World Navigation</span>
@@ -1016,10 +971,10 @@
                     <div class="rail-body is-collapsed">
                         <div class="thread-side-body" style="padding:0">
                             <div class="right-flat-row cursor-default opacity-60">
-                                <span class="truncate">{{ $thread->village->name }}</span>
-                                <span class="archive-label shrink-0">Village</span>
+                                <span class="truncate">{{ $thread->city->name }}</span>
+                                <span class="archive-label shrink-0">City</span>
                             </div>
-                            <a href="{{ route('village', $thread->village->id) }}" class="right-flat-row">
+                            <a href="{{ route('city', $thread->city->id) }}" class="right-flat-row">
                                 <span class="truncate" style="color:{{ $navCity->color ?? '#c8a84b' }}">
                                     {{ $navCity->name ?? '—' }}
                                 </span>
@@ -1044,7 +999,7 @@
                     <div class="rail-body">
                         <div class="thread-side-body" style="padding:0">
                             @forelse($participants->take(6) as $participant)
-                                @php $pColor = $participant->city->color ?? '#c8a84b'; @endphp
+                                @php $pColor = $participant->kingdom->color ?? '#c8a84b'; @endphp
                                 <div class="right-flat-row" style="min-height:46px">
                                     <div class="flex min-w-0 flex-1 items-center gap-2.5">
                                         <div class="right-mini-avatar shrink-0"
@@ -1053,7 +1008,7 @@
                                                 <img src="{{ $participant->avatar }}" alt="{{ $participant->name }}"
                                                      class="h-full w-full object-cover">
                                             @else
-                                                <span style="color:{{ $pColor }};font-size:11px;font-family:'Cinzel',serif">
+                                                <span style="color:{{ $pColor }};font-size:11px;font-family:var(--font-display)">
                                                     {{ strtoupper(mb_substr($participant->name, 0, 1)) }}
                                                 </span>
                                             @endif
@@ -1175,7 +1130,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.openModForm = function (action) {
         document.getElementById('mod-action').value = action;
         document.getElementById('mod-msg-wrap').classList.toggle('hidden', !['request_edit','reject'].includes(action));
-        document.getElementById('mod-village-wrap').classList.toggle('hidden', action !== 'move');
+        document.getElementById('mod-city-wrap').classList.toggle('hidden', action !== 'move');
         document.getElementById('mod-form-area').classList.remove('hidden');
     };
 

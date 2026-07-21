@@ -16,8 +16,9 @@ class AppServiceProvider extends ServiceProvider
         View::composer(['layouts.app', 'partials.navbar', 'partials.footer', 'partials.character-module'], function ($view) {
             if (Auth::check()) {
                 $view->with('character', Auth::user()->character()->with([
-                    'city.villages',
-                    'currentCity.villages',
+                    'kingdom.cities',
+                    'currentKingdom.cities',
+                    'currentCity',
                     'stats',
                     'badges',
                 ])->withCount('posts')->first());

@@ -14,16 +14,17 @@ class CharacterController extends Controller
     {
         $character = Character::with([
             'user',
-            'city',
+            'kingdom',
+            'currentKingdom',
             'currentCity',
             'stats',
             'badges',
-            'events' => fn ($q) => $q->where('status', 'active')->with('city'),
+            'events' => fn ($q) => $q->where('status', 'active')->with('kingdom'),
         ])->withCount('posts')->findOrFail($id);
 
         $recentPosts = Post::where('character_id', $character->id)
             ->where('status', 'approved')
-            ->with('thread.village.city')
+            ->with('thread.city.kingdom')
             ->latest()
             ->take(5)
             ->get();
@@ -41,7 +42,7 @@ class CharacterController extends Controller
             return redirect()->route('home');
         }
 
-        $currentCharacter = $character->load(['city', 'currentCity', 'stats', 'badges'])->loadCount('posts');
+        $currentCharacter = $character->load(['kingdom', 'currentKingdom', 'currentCity', 'stats', 'badges'])->loadCount('posts');
 
         return view('character-edit', compact('character', 'currentCharacter'));
     }
@@ -56,7 +57,6 @@ class CharacterController extends Controller
 
         $validated = $request->validate([
             'name'      => 'required|string|max:100',
-            'title'     => 'nullable|string|max:100',
             'backstory' => 'nullable|string|max:5000',
             'avatar'    => 'nullable|url|max:500',
         ]);

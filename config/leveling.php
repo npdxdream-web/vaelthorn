@@ -3,7 +3,7 @@
 /**
  * Leveling configuration.
  * exp_to_next[N] = total EXP required to advance from level N to N+1.
- * Level 0→1 is gated by onboarding stages (stage_a + stage_b), NOT raw exp.
+ * Level 0→1 is gated by the 3-stage onboarding review (see OnboardingService), NOT raw exp.
  */
 return [
     'exp_to_next' => [
@@ -17,9 +17,6 @@ return [
         8 => 120,
         9 => 160,
     ],
-
-    // Stage B: total exp earned in the onboarding event required before level-up to 1
-    'stage_b_required_exp' => 6,
 
     // Stat points awarded to the character on each level-up (adjust without touching logic)
     'stat_points_per_level' => 3,

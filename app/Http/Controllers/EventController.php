@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\City;
 use App\Models\Event;
 use App\Models\EventParticipant;
+use App\Models\Kingdom;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,7 +12,7 @@ class EventController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Event::with(['city', 'participants'])
+        $query = Event::with(['kingdom', 'participants'])
             ->withCount('participants')
             ->where('status', 'active')
             ->orderBy('start_at');
@@ -21,22 +21,22 @@ class EventController extends Controller
             $query->where('type', $request->type);
         }
         if ($request->filled('city')) {
-            $query->where('city_id', $request->city);
+            $query->where('kingdom_id', $request->city);
         }
 
-        $events = $query->get();
-        $cities = City::orderBy('name')->get();
+        $events   = $query->get();
+        $kingdoms = Kingdom::orderBy('name')->get();
         $currentCharacter = auth()->user()->character;
 
-        return view('events.index', compact('events', 'cities', 'currentCharacter'));
+        return view('events.index', compact('events', 'kingdoms', 'currentCharacter'));
     }
 
     public function show($id)
     {
         $event = Event::with([
-            'city',
+            'kingdom',
             'requirements',
-            'participants.character.city',
+            'participants.character.kingdom',
             'rewards.item',
         ])->findOrFail($id);
 
@@ -54,7 +54,7 @@ class EventController extends Controller
                 $met = match($req->req_type) {
                     'level' => ($stats->level ?? 1) >= $req->min_value,
                     'stat'  => ($stats->{$req->req_key} ?? 0) >= $req->min_value,
-                    'city'  => $currentCharacter->city_id == $req->min_value,
+                    'city'  => $currentCharacter->kingdom_id == $req->min_value,
                     default => true,
                 };
                 $requirementResults[] = [

@@ -40,11 +40,11 @@
     <x-slot:left>
         <div class="sticky top-20">
             <div class="archive-panel p-5">
-                <h3 class="font-display mb-4 text-base text-gold">{{ $thread->village->name ?? '—' }}</h3>
+                <h3 class="font-display mb-4 text-base text-gold">{{ $thread->city->name ?? '—' }}</h3>
                 <div class="space-y-3 text-sm">
                     <div class="flex flex-col gap-0.5">
                         <span class="archive-label">City</span>
-                        <span style="color:{{ $thread->village->city->color ?? '#c8a84b' }}">{{ $thread->village->city->name ?? '—' }}</span>
+                        <span style="color:{{ $thread->city->kingdom->color ?? '#c8a84b' }}">{{ $thread->city->kingdom->name ?? '—' }}</span>
                     </div>
                     <div class="border-t border-gold/10 pt-3">
                         <a href="{{ route('thread', $thread->id) }}"
@@ -98,15 +98,15 @@
                        class="focus:border-gold/50">
             </div>
 
-            {{-- Admin: move village --}}
+            {{-- Admin: move city --}}
             @if(auth()->user()->isAdminGroup())
             <div class="mb-4">
-                <label for="village_id" class="mb-1 block text-sm text-text-muted">หมู่บ้าน</label>
-                <select name="village_id" id="village_id"
+                <label for="city_id" class="mb-1 block text-sm text-text-muted">เมือง</label>
+                <select name="city_id" id="city_id"
                         class="w-full rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-4 py-2 text-[#e8e6e3]">
-                    @foreach($villages as $v)
-                        <option value="{{ $v->id }}" {{ $v->id == $thread->village_id ? 'selected' : '' }}>
-                            {{ $v->city?->name }} → {{ $v->name }}
+                    @foreach($cities as $v)
+                        <option value="{{ $v->id }}" {{ $v->id == $thread->city_id ? 'selected' : '' }}>
+                            {{ $v->kingdom?->name }} → {{ $v->name }}
                         </option>
                     @endforeach
                 </select>

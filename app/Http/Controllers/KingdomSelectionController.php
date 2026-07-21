@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\City;
+use App\Models\Kingdom;
 use Illuminate\Http\Request;
 
-class CitySelectionController extends Controller
+class KingdomSelectionController extends Controller
 {
     public function show()
     {
@@ -19,16 +19,15 @@ class CitySelectionController extends Controller
             return redirect()->route('onboarding');
         }
 
-        if ($character->city_id) {
+        if ($character->kingdom_id) {
             return redirect()->route('home');
         }
 
-        $cities = City::with('villages')
+        $kingdoms = Kingdom::with('cities')
             ->where('is_active', true)
-            ->where('is_locked', false)
             ->get();
 
-        return view('choose-city', compact('character', 'cities'));
+        return view('choose-kingdom', compact('character', 'kingdoms'));
     }
 
     public function store(Request $request)
@@ -40,24 +39,23 @@ class CitySelectionController extends Controller
         }
 
         // Backend enforcement — once set, kingdom is permanent
-        if ($character->city_id !== null) {
+        if ($character->kingdom_id !== null) {
             abort(403, 'Kingdom ถูกเลือกแล้ว ไม่สามารถเปลี่ยนได้');
         }
 
         $request->validate([
-            'city_id' => 'required|exists:cities,id',
+            'kingdom_id' => 'required|exists:kingdoms,id',
         ]);
 
-        $city = City::where('id', $request->city_id)
+        $kingdom = Kingdom::where('id', $request->kingdom_id)
             ->where('is_active', true)
-            ->where('is_locked', false)
             ->firstOrFail();
 
         $character->update([
-            'city_id'         => $city->id,
-            'current_city_id' => $city->id,
+            'kingdom_id'         => $kingdom->id,
+            'current_kingdom_id' => $kingdom->id,
         ]);
 
-        return redirect()->route('home')->with('success', 'ยินดีต้อนรับสู่ ' . $city->name . '!');
+        return redirect()->route('home')->with('success', 'ยินดีต้อนรับสู่ ' . $kingdom->name . '!');
     }
 }

@@ -3,8 +3,8 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ThreadResource\Pages;
+use App\Models\City;
 use App\Models\Thread;
-use App\Models\Village;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -22,10 +22,12 @@ class ThreadResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $isAdmin = auth()->user()?->isAtLeastAdmin() ?? false;
+
         return $form->schema([
-            Forms\Components\Select::make('village_id')
-                ->label('หมู่บ้าน')
-                ->options(fn () => Village::with('city')->get()->mapWithKeys(fn ($v) => [$v->id => "{$v->city?->name} → {$v->name}"]))
+            Forms\Components\Select::make('city_id')
+                ->label('เมือง')
+                ->options(fn () => City::with('kingdom')->get()->mapWithKeys(fn ($c) => [$c->id => "{$c->kingdom?->name} → {$c->name}"]))
                 ->searchable()
                 ->required(),
             Forms\Components\Select::make('created_by')
@@ -50,6 +52,15 @@ class ThreadResource extends Resource
                 ])
                 ->required()
                 ->default('pending'),
+            Forms\Components\TextInput::make('exp_override')
+                ->label('EXP กำหนดเอง (เฉพาะกระทู้นี้)')
+                ->helperText('ปล่อยว่างเพื่อใช้ค่า EXP ปกติจาก Event หรือ 1 EXP สำหรับโซน auto-approve')
+                ->numeric()
+                ->minValue(0)
+                ->maxValue(255)
+                ->nullable()
+                ->visible($isAdmin)
+                ->dehydrated($isAdmin),
             Forms\Components\Textarea::make('moderation_message')
                 ->label('ข้อความจาก Admin')
                 ->nullable()
@@ -68,9 +79,13 @@ class ThreadResource extends Resource
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('ผู้เขียน')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('village.name')
-                    ->label('หมู่บ้าน')
+                Tables\Columns\TextColumn::make('city.name')
+                    ->label('เมือง')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('exp_override')
+                    ->label('EXP กำหนดเอง')
+                    ->default('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\BadgeColumn::make('status')
                     ->label('สถานะ')
                     ->colors([
@@ -167,7 +182,7 @@ class ThreadResource extends Resource
                         ->color('gray')
                         ->requiresConfirmation()
                         ->modalHeading('Archive Story Arc')
-                        ->modalDescription('Thread จะถูกเปลี่ยนเป็น archived — ยังคงอ่านได้จากหน้า Chronicle Archive แต่จะไม่แสดงใน village feed อีกต่อไป ไม่มีการลบข้อมูลจริง')
+                        ->modalDescription('Thread จะถูกเปลี่ยนเป็น archived — ยังคงอ่านได้จากหน้า Chronicle Archive แต่จะไม่แสดงใน city feed อีกต่อไป ไม่มีการลบข้อมูลจริง')
                         ->action(fn (Thread $record) => $record->update([
                             'status'      => 'archived',
                             'archived_at' => now(),
@@ -183,17 +198,17 @@ class ThreadResource extends Resource
                         ->visible(fn (Thread $record) => ! $record->trashed() && $record->status === 'archived'),
 
                     Tables\Actions\Action::make('move')
-                        ->label('ย้ายหมู่บ้าน')
+                        ->label('ย้ายเมือง')
                         ->icon('heroicon-o-arrow-right-circle')
                         ->color('info')
                         ->form([
-                            Forms\Components\Select::make('village_id')
-                                ->label('หมู่บ้านปลายทาง')
-                                ->options(fn () => Village::with('city')->get()->mapWithKeys(fn ($v) => [$v->id => "{$v->city?->name} → {$v->name}"]))
+                            Forms\Components\Select::make('city_id')
+                                ->label('เมืองปลายทาง')
+                                ->options(fn () => City::with('kingdom')->get()->mapWithKeys(fn ($c) => [$c->id => "{$c->kingdom?->name} → {$c->name}"]))
                                 ->searchable()
                                 ->required(),
                         ])
-                        ->action(fn (Thread $record, array $data) => $record->update(['village_id' => $data['village_id']]))
+                        ->action(fn (Thread $record, array $data) => $record->update(['city_id' => $data['city_id']]))
                         ->visible(fn (Thread $record) => ! $record->trashed()),
 
                     Tables\Actions\EditAction::make()

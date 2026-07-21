@@ -21,9 +21,9 @@
             {{-- Logotype — font specified directly to match Cinzel Decorative exactly --}}
             <span class="leading-none">
                 <span class="block text-[13px] font-bold leading-none tracking-widest text-gold"
-                      style="font-family:'Cinzel Decorative','Cinzel',serif">VAELTHORN</span>
+                      style="font-family:var(--font-decorative)">VAELTHORN</span>
                 <span class="mt-1 block text-[7px] font-bold tracking-[0.45em] text-gold/40"
-                      style="font-family:'Cinzel Decorative','Cinzel',serif">CHRONICLES</span>
+                      style="font-family:var(--font-decorative)">CHRONICLES</span>
             </span>
         </a>
 
@@ -35,9 +35,9 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                 </svg>
             </a>
-            @if(isset($character) && $character?->city?->villages?->first())
-                <a href="{{ route('village', $character->currentCity?->villages?->first()?->id ?? $character->city->villages->first()->id) }}"
-                   class="flex h-10 w-10 items-center justify-center rounded-lg transition-colors {{ $currentRoute === 'village' ? 'bg-border text-gold' : 'text-text-muted hover:text-gold' }}"
+            @if(isset($character) && $character?->kingdom?->cities?->first())
+                <a href="{{ route('city', $character->currentKingdom?->cities?->first()?->id ?? $character->kingdom->cities->first()->id) }}"
+                   class="flex h-10 w-10 items-center justify-center rounded-lg transition-colors {{ $currentRoute === 'city' ? 'bg-border text-gold' : 'text-text-muted hover:text-gold' }}"
                    title="แผนที่">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
@@ -110,7 +110,7 @@
                 <a href="{{ route('character.show', $character->id) }}"
                    title="{{ $character->name }}"
                    class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 bg-bg-elevated text-sm text-text shadow-[0_0_16px_rgba(200,168,75,0.1)] transition hover:ring-1 hover:ring-gold/50"
-                   style="border-color: {{ $character->city->color ?? '#D4AF37' }}; background: linear-gradient(135deg, {{ $character->city->color ?? '#7a8c9e' }}aa, {{ $character->city->color ?? '#5a6c7e' }}66);">
+                   style="border-color: {{ $character->kingdom->color ?? '#D4AF37' }}; background: linear-gradient(135deg, {{ $character->kingdom->color ?? '#7a8c9e' }}aa, {{ $character->kingdom->color ?? '#5a6c7e' }}66);">
                     @if($character->avatar)
                         <img src="{{ $character->avatar }}" alt="{{ $character->name }}" class="h-full w-full object-cover">
                     @else

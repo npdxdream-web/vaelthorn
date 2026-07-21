@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 
-class EnsureCitySelected
+class EnsureKingdomSelected
 {
     public function handle(Request $request, Closure $next)
     {
@@ -24,13 +24,13 @@ class EnsureCitySelected
             return $next($request);
         }
 
-        // Active character with no kingdom and level 1+ → must choose city first
+        // Active character with no kingdom and level 1+ → must choose a kingdom first
         if (
             $character->status === 'active'
-            && $character->city_id === null
+            && $character->kingdom_id === null
             && ($character->stats?->level ?? 0) >= 1
         ) {
-            return redirect()->route('choose-city');
+            return redirect()->route('choose-kingdom');
         }
 
         return $next($request);

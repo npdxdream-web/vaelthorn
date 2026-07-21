@@ -17,7 +17,9 @@ return new class extends Migration
             ->where('status', 'open')
             ->update(['status' => 'approved']);
 
-        DB::statement("ALTER TABLE threads MODIFY status VARCHAR(255) NOT NULL DEFAULT 'pending'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE threads MODIFY status VARCHAR(255) NOT NULL DEFAULT 'pending'");
+        }
     }
 
     public function down(): void

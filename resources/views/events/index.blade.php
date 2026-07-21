@@ -37,12 +37,12 @@
                                       {{ !request('city') ? 'bg-gold/10 text-gold border border-gold/25' : 'text-text-muted hover:text-gold' }}">
                                 All Kingdoms
                             </a>
-                            @foreach($cities as $city)
-                                <a href="{{ route('events.index', array_merge(request()->all(), ['city' => $city->id])) }}"
+                            @foreach($kingdoms as $kingdom)
+                                <a href="{{ route('events.index', array_merge(request()->all(), ['city' => $kingdom->id])) }}"
                                    class="block px-2 py-1.5 text-sm rounded transition
-                                          {{ request('city') == $city->id ? 'bg-gold/10 text-gold border border-gold/25' : 'text-text-muted hover:text-gold' }}"
-                                   style="{{ request('city') == $city->id ? 'color:'.$city->color.';border-color:'.$city->color.'44' : '' }}">
-                                    {{ $city->icon ?? '◆' }} {{ $city->name }}
+                                          {{ request('city') == $kingdom->id ? 'bg-gold/10 text-gold border border-gold/25' : 'text-text-muted hover:text-gold' }}"
+                                   style="{{ request('city') == $kingdom->id ? 'color:'.$kingdom->color.';border-color:'.$kingdom->color.'44' : '' }}">
+                                    {{ $kingdom->icon ?? '◆' }} {{ $kingdom->name }}
                                 </a>
                             @endforeach
                         </div>
@@ -87,7 +87,7 @@
                 'crisis'    => ['#f87171', '⚠', 'CRISIS'],
             ];
             [$tc, $ti, $tl] = $typeColors[$event->type] ?? ['#c8a84b', '◆', strtoupper($event->type)];
-            $cityColor = $event->city?->color ?? '#c8a84b';
+            $kingdomColor = $event->kingdom?->color ?? '#c8a84b';
             $isJoined = $currentCharacter
                 ? $event->participants->contains('character_id', $currentCharacter->id)
                 : false;
@@ -101,16 +101,16 @@
                 <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
                     <div class="flex-1 min-w-0">
                         <div class="mb-1.5 flex flex-wrap items-center gap-2">
-                            <span style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:{{ $tc }}; border:0.5px solid {{ $tc }}55; padding:2px 8px;">
+                            <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:{{ $tc }}; border:0.5px solid {{ $tc }}55; padding:2px 8px;">
                                 {{ $ti }} {{ $tl }}
                             </span>
-                            @if($event->city)
-                                <span style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:1.5px; color:{{ $cityColor }}88; padding:2px 6px;">
-                                    {{ $event->city->name }}
+                            @if($event->kingdom)
+                                <span style="font-family:var(--font-display); font-size:9px; letter-spacing:1.5px; color:{{ $kingdomColor }}88; padding:2px 6px;">
+                                    {{ $event->kingdom->name }}
                                 </span>
                             @endif
                             @if($isJoined)
-                                <span style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:1.5px; color:#2d7a3a; border:0.5px solid #2d7a3a44; padding:2px 8px;">
+                                <span style="font-family:var(--font-display); font-size:9px; letter-spacing:1.5px; color:#2d7a3a; border:0.5px solid #2d7a3a44; padding:2px 8px;">
                                     ✓ JOINED
                                 </span>
                             @endif

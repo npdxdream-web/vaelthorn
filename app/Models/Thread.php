@@ -9,7 +9,7 @@ class Thread extends Model
 {
     use SoftDeletes;
     protected $fillable = [
-        'village_id',
+        'city_id',
         'event_id',
         'created_by',
         'title',
@@ -17,6 +17,7 @@ class Thread extends Model
         'status',
         'moderation_message',
         'archived_at',
+        'exp_override',
     ];
 
     protected $casts = [
@@ -25,9 +26,9 @@ class Thread extends Model
 
     protected $appends = ['status_label', 'status_color'];
 
-    public function village()
+    public function city()
     {
-        return $this->belongsTo(Village::class);
+        return $this->belongsTo(City::class);
     }
 
     public function creator()

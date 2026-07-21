@@ -14,4 +14,5 @@ class Item extends Model
 
     public function inventories() { return $this->hasMany(Inventory::class); }
     public function rewards() { return $this->hasMany(Reward::class); }
+    public function travelPermit() { return $this->hasOne(TravelPermit::class); }
 }

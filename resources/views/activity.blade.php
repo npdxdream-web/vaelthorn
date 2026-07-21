@@ -48,8 +48,8 @@
             @foreach($threads as $row)
                 @php
                     $thread = $row['thread'];
-                    $village = $thread->village;
-                    $city = $village?->city;
+                    $city = $thread->city;
+                    $kingdom = $city?->kingdom;
                 @endphp
                 <a href="{{ route('thread', $thread->id) }}"
                    class="archive-panel-soft group block p-5 transition hover:border-gold/30">
@@ -79,17 +79,17 @@
                             </h3>
 
                             <div class="flex flex-wrap items-center gap-3 text-xs text-text-muted">
-                                @if($village)
+                                @if($city)
                                     <span class="flex items-center gap-1">
                                         <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                         </svg>
-                                        {{ $village->name }}
+                                        {{ $city->name }}
                                     </span>
                                 @endif
-                                @if($city)
-                                    <span style="color:{{ $city->color ?? '#c8a84b' }}">{{ $city->name }}</span>
+                                @if($kingdom)
+                                    <span style="color:{{ $kingdom->color ?? '#c8a84b' }}">{{ $kingdom->name }}</span>
                                 @endif
                             </div>
                         </div>

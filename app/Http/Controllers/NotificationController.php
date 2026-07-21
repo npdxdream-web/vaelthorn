@@ -12,12 +12,12 @@ class NotificationController extends Controller
         'event'       => ['event_started', 'event_ending_soon'],
         'reward'      => ['item_received'],
         'progression' => ['level_up', 'badge_awarded'],
-        'system'      => ['system_announcement'],
+        'system'      => ['system_announcement', 'council_letter_new', 'council_letter_replied'],
     ];
 
     public function index()
     {
-        $currentCharacter = Auth::user()->character?->load(['city', 'currentCity', 'stats', 'badges'])->loadCount('posts');
+        $currentCharacter = Auth::user()->character?->load(['kingdom', 'currentKingdom', 'currentCity', 'stats', 'badges'])->loadCount('posts');
 
         $filter = request('filter', 'all');
         $query  = Notification::where('user_id', Auth::id())->latest();

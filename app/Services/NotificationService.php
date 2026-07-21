@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Character;
+use App\Models\CouncilLetter;
 use App\Models\Event;
 use App\Models\Item;
 use App\Models\Notification;
@@ -49,6 +50,26 @@ class NotificationService
             'data'      => ['post_id' => $post->id, 'thread_id' => $post->thread_id, 'reason' => $reason],
             'link_type' => 'thread',
             'link_id'   => $post->thread_id,
+        ]);
+    }
+
+    public function notifyOnboardingRejected(Character $character, string $reason): void
+    {
+        $character->loadMissing('user');
+
+        $user = $character->user;
+        if (! $user) {
+            return;
+        }
+
+        Notification::create([
+            'user_id'   => $user->id,
+            'type'      => 'onboarding_rejected',
+            'title'     => 'บันทึกของคุณต้องแก้ไข — กรุณาทำแบบทดสอบใหม่',
+            'body'      => $reason,
+            'data'      => ['character_id' => $character->id, 'reason' => $reason],
+            'link_type' => 'character',
+            'link_id'   => $character->id,
         ]);
     }
 
@@ -171,6 +192,45 @@ class NotificationService
             'data'      => null,
             'link_type' => null,
             'link_id'   => null,
+        ]);
+    }
+
+    public function notifyCouncilLetterReceived(CouncilLetter $letter): void
+    {
+        $letter->loadMissing('character');
+
+        $admins = User::whereIn('role', ['moderator', 'admin', 'superadmin'])->get();
+
+        foreach ($admins as $admin) {
+            Notification::create([
+                'user_id'   => $admin->id,
+                'type'      => 'council_letter_new',
+                'title'     => 'มีจดหมายถึงสภาฉบับใหม่',
+                'body'      => "จาก {$letter->character?->name}: \"{$letter->subject}\"",
+                'data'      => ['letter_id' => $letter->id],
+                'link_type' => 'council_letter',
+                'link_id'   => $letter->id,
+            ]);
+        }
+    }
+
+    public function notifyCouncilLetterReplied(CouncilLetter $letter): void
+    {
+        $letter->loadMissing('character.user');
+
+        $user = $letter->character?->user;
+        if (! $user) {
+            return;
+        }
+
+        Notification::create([
+            'user_id'   => $user->id,
+            'type'      => 'council_letter_replied',
+            'title'     => 'สภาตอบจดหมายของคุณแล้ว',
+            'body'      => "\"{$letter->subject}\"",
+            'data'      => ['letter_id' => $letter->id],
+            'link_type' => 'council_letter',
+            'link_id'   => $letter->id,
         ]);
     }
 

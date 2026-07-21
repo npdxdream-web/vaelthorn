@@ -6,7 +6,7 @@
     // Resolve character: explicit prop → auth user's character → null
     $resolvedCharacter = $characterStatus
         ?? (auth()->check()
-            ? auth()->user()->character()->with(['city', 'currentCity', 'stats', 'badges'])->withCount('posts')->first()
+            ? auth()->user()->character()->with(['kingdom', 'currentKingdom', 'currentCity', 'stats', 'badges'])->withCount('posts')->first()
             : null);
 @endphp
 

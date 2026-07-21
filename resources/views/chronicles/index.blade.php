@@ -20,7 +20,7 @@
                 <p class="archive-label mb-3">Kingdoms</p>
                 <div class="space-y-1">
                     @php
-                        $kingdoms = [
+                        $kingdomIcons = [
                             'Silvaria'  => ['🌲', '#4ade80'],
                             'Aurantia'  => ['⚔', '#f59e0b'],
                             'Kalif'     => ['🏜', '#fb923c'],
@@ -29,7 +29,7 @@
                             'Celestia'  => ['✦', '#c8a84b'],
                         ];
                     @endphp
-                    @foreach($kingdoms as $k => [$icon, $color])
+                    @foreach($kingdomIcons as $k => [$icon, $color])
                         <div class="flex items-center gap-2 px-2 py-1 text-sm text-text-muted">
                             <span>{{ $icon }}</span>
                             <span style="color:{{ $color }}">{{ $k }}</span>
@@ -41,7 +41,7 @@
     </x-slot:left>
 
     {{-- ── Main ─────────────────────────────────────────────────────────── --}}
-    <div class="archive-panel corner-ornaments mb-8 p-8 text-center">
+    <div class="archive-panel corner-ornaments mb-6 p-8 text-center">
         <p class="archive-label mb-2">Vaelthorn</p>
         <h1 class="font-decorative mb-3 text-4xl text-gold">World Chronicles</h1>
         <p class="font-chronicle mx-auto max-w-lg text-xl text-text-muted">
@@ -49,65 +49,61 @@
         </p>
     </div>
 
+    {{-- ── Category tabs ──────────────────────────────────────────────── --}}
+    @if($categories->isNotEmpty())
+        <div class="mb-8 flex flex-wrap items-center gap-2.5 border-b border-gold/10 pb-5">
+            <a href="{{ route('chronicles.index') }}"
+               class="font-display rounded-full border px-4 py-1.5 text-xs uppercase tracking-wider transition
+                      {{ ! $category ? 'border-gold/50 bg-gold/10 text-gold shadow-[0_0_16px_rgba(200,168,75,0.15)]' : 'border-border text-text-muted hover:text-gold hover:border-gold/30' }}">
+                ทั้งหมด
+            </a>
+            @foreach($categories as $cat)
+                <a href="{{ route('chronicles.index', ['category' => $cat]) }}"
+                   class="font-display rounded-full border px-4 py-1.5 text-xs uppercase tracking-wider transition
+                          {{ $category === $cat ? 'border-gold/50 bg-gold/10 text-gold shadow-[0_0_16px_rgba(200,168,75,0.15)]' : 'border-border text-text-muted hover:text-gold hover:border-gold/30' }}">
+                    {{ strtoupper($cat) }}
+                </a>
+            @endforeach
+        </div>
+    @endif
+
     @if($chronicles->isEmpty())
         <div class="archive-panel-soft p-16 text-center">
             <p class="font-display text-lg text-gold/40">ยังไม่มีบันทึกประวัติศาสตร์</p>
-            <p class="mt-2 text-sm text-text-subtle">Chronicles จะถูกสร้างขึ้นหลัง Event สำคัญสิ้นสุดลง</p>
+            <p class="mt-2 text-sm text-text-subtle">
+                @if($category)
+                    ยังไม่มีบันทึกในหมวด "{{ $category }}"
+                @else
+                    Chronicles จะถูกสร้างขึ้นหลัง Event สำคัญสิ้นสุดลง
+                @endif
+            </p>
         </div>
     @else
-        <div class="space-y-5">
+        <div class="chronicle-grid">
             @foreach($chronicles as $chronicle)
                 @php
-                    $city = $chronicle->event?->city;
-                    $kingdomColors = [
-                        'Silvaria'  => '#4ade80',
-                        'Aurantia'  => '#f59e0b',
-                        'Kalif'     => '#fb923c',
-                        'Frostwell' => '#60a5fa',
-                        'Kyoren'    => '#a78bfa',
-                        'Celestia'  => '#c8a84b',
-                    ];
-                    $kcolor = $city ? ($kingdomColors[$city->name] ?? '#c8a84b') : '#c8a84b';
-                    $excerpt = Str::limit(strip_tags($chronicle->content), 280);
+                    $kingdom = $chronicle->display_kingdom;
+                    $kcolor = $kingdom?->color ?? '#c8a84b';
+                    $kicon = $kingdom?->icon ?? '✦';
+                    $cover = $chronicle->cover_image_url;
                 @endphp
-                <article class="archive-panel overflow-hidden transition hover:border-gold/30">
-                    <div class="h-0.5" style="background:linear-gradient(90deg,{{ $kcolor }}88,transparent)"></div>
-                    <div class="p-6">
-                        <div class="mb-4 flex items-start gap-4">
-                            <div class="shrink-0 text-center">
-                                <div class="font-display text-2xl" style="color:{{ $kcolor }}">
-                                    {{ $chronicle->generated_at?->format('d') }}
-                                </div>
-                                <div class="archive-label text-[0.6rem]" style="color:{{ $kcolor }}88">
-                                    {{ $chronicle->generated_at?->format('M Y') }}
-                                </div>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="mb-2 flex flex-wrap items-center gap-2">
-                                    @if($city)
-                                        <span class="archive-label" style="color:{{ $kcolor }}">
-                                            {{ $city->name }}
-                                        </span>
-                                    @endif
-                                    @if($chronicle->event)
-                                        <span class="archive-label text-text-subtle">
-                                            {{ $chronicle->event->title }}
-                                        </span>
-                                    @endif
-                                </div>
-                                <p class="font-chronicle text-base leading-relaxed text-text-muted">
-                                    {{ $excerpt }}
-                                </p>
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-end border-t border-gold/10 pt-4">
-                            <a href="{{ route('chronicles.show', $chronicle->id) }}"
-                               class="font-display text-xs uppercase tracking-wider text-gold/70 transition hover:text-gold">
-                                Read Chronicle →
-                            </a>
-                        </div>
+                <a href="{{ route('chronicles.show', $chronicle->id) }}" class="chronicle-card">
+                    @if($cover)
+                        <div class="chronicle-card-media" style="background-image:url('{{ $cover }}')"></div>
+                    @else
+                        <div class="chronicle-card-media"
+                             style="background:radial-gradient(circle at 30% 18%, {{ $kcolor }}59, transparent 60%), linear-gradient(160deg, {{ $kcolor }}3d 0%, #120c04 78%);"></div>
+                        <div class="chronicle-card-watermark" style="color:{{ $kcolor }}">{{ $kicon }}</div>
+                    @endif
+                    <div class="chronicle-card-scrim"></div>
+                    <div class="chronicle-card-body">
+                        @if($chronicle->category)
+                            <span class="chronicle-card-tag">{{ strtoupper($chronicle->category) }}</span>
+                        @endif
+                        <p class="chronicle-card-date">{{ $chronicle->generated_at?->format('d M Y') }}</p>
+                        <h2 class="chronicle-card-title">{{ $chronicle->display_title }}</h2>
                     </div>
-                </article>
+                </a>
             @endforeach
         </div>
 

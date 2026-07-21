@@ -56,7 +56,7 @@
         <div class="space-y-3">
             @foreach($logs as $log)
                 @php
-                    $city = $log->event?->city;
+                    $kingdom = $log->event?->kingdom;
                     $kingdomColors = [
                         'Silvaria'  => '#4ade80',
                         'Aurantia'  => '#f59e0b',
@@ -65,7 +65,7 @@
                         'Kyoren'    => '#a78bfa',
                         'Celestia'  => '#c8a84b',
                     ];
-                    $kc = $city ? ($kingdomColors[$city->name] ?? '#c8a84b') : '#c8a84b';
+                    $kc = $kingdom ? ($kingdomColors[$kingdom->name] ?? '#c8a84b') : '#c8a84b';
                 @endphp
                 <div class="archive-panel-soft overflow-hidden">
                     <div class="h-px" style="background:linear-gradient(90deg,{{ $kc }}55,transparent)"></div>
@@ -87,8 +87,8 @@
                                    class="font-display text-sm transition hover:text-gold" style="color:{{ $kc }}">
                                     {{ $log->event->title }}
                                 </a>
-                                @if($city)
-                                    <span class="ml-2 archive-label" style="color:{{ $kc }}66">{{ $city->name }}</span>
+                                @if($kingdom)
+                                    <span class="ml-2 archive-label" style="color:{{ $kc }}66">{{ $kingdom->name }}</span>
                                 @endif
                             @else
                                 <span class="font-display text-sm text-text-muted">System Reward</span>

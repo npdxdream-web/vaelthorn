@@ -37,6 +37,11 @@ class OnboardingService
 
         $flag         = "stage_{$stage}_completed";
         $stats->$flag = true;
+
+        if ($stage === 1 && $stats->rejection_reason) {
+            $stats->rejection_reason = null;
+        }
+
         $stats->save();
 
         $this->checkAllComplete($character);

@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\WorldChronicleResource\Pages;
-use App\Models\Event;
 use App\Models\WorldChronicle;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -26,16 +25,39 @@ class WorldChronicleResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Select::make('event_id')
-                ->label('Related Event')
-                ->options(Event::orderByDesc('created_at')->pluck('title', 'id'))
+            Forms\Components\TextInput::make('title')
+                ->label('หัวเรื่อง')
+                ->maxLength(255)
+                ->required(),
+
+            Forms\Components\Select::make('category')
+                ->label('หมวดหมู่')
+                ->options([
+                    'Lore'      => 'Lore',
+                    'History'   => 'Event History',
+                    'War'       => 'War',
+                    'Political' => 'Political',
+                    'Other'     => 'Other',
+                ])
                 ->searchable()
                 ->nullable(),
 
-            Forms\Components\DateTimePicker::make('generated_at')
-                ->label('Record Date')
-                ->default(now())
-                ->required(),
+            Forms\Components\Select::make('kingdom_id')
+                ->label('อาณาจักร')
+                ->relationship('kingdom', 'name')
+                ->searchable()
+                ->nullable()
+                ->helperText('กำหนดสี/ไอคอนพื้นหลังของการ์ดเมื่อไม่มีภาพปก — ถ้าเว้นว่างจะใช้ Kingdom จาก Event ที่เชื่อมโยงแทน (ถ้ามี)'),
+
+            Forms\Components\FileUpload::make('cover_image')
+                ->label('ภาพปก')
+                ->image()
+                ->disk('public')
+                ->directory('chronicles')
+                ->imagePreviewHeight('220')
+                ->maxSize(5120)
+                ->helperText('ถ้าไม่อัปโหลด การ์ดจะใช้ gradient สีอาณาจักรแทน')
+                ->columnSpanFull(),
 
             Forms\Components\Toggle::make('is_published')
                 ->label('Published')
@@ -55,15 +77,26 @@ class WorldChronicleResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('cover_image')
+                    ->label('ภาพปก')
+                    ->disk('public')
+                    ->square()
+                    ->defaultImageUrl(fn () => null),
                 Tables\Columns\IconColumn::make('is_published')
                     ->label('Published')
                     ->boolean(),
-                Tables\Columns\TextColumn::make('event.title')
-                    ->label('Event')
+                Tables\Columns\TextColumn::make('title')
+                    ->label('หัวเรื่อง')
                     ->searchable()
+                    ->default('—')
                     ->limit(40),
-                Tables\Columns\TextColumn::make('event.city.name')
-                    ->label('City'),
+                Tables\Columns\TextColumn::make('category')
+                    ->label('หมวดหมู่')
+                    ->badge()
+                    ->default('—'),
+                Tables\Columns\TextColumn::make('kingdom.name')
+                    ->label('อาณาจักร')
+                    ->default('—'),
                 Tables\Columns\TextColumn::make('content')
                     ->limit(80)
                     ->label('Preview'),
@@ -76,6 +109,15 @@ class WorldChronicleResource extends Resource
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_published')
                     ->label('Published'),
+                Tables\Filters\SelectFilter::make('category')
+                    ->label('หมวดหมู่')
+                    ->options([
+                        'Lore'      => 'Lore',
+                        'History'   => 'Event History',
+                        'War'       => 'War',
+                        'Political' => 'Political',
+                        'Other'     => 'Other',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

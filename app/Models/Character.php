@@ -12,11 +12,12 @@ class Character extends Model
 {
     protected $fillable = [
         'user_id',
-        'city_id',
+        'kingdom_id',
         'name',
         'backstory',
         'status',
         'avatar',
+        'current_kingdom_id',
         'current_city_id',
         'gold',
         'title',
@@ -69,9 +70,14 @@ class Character extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function city(): BelongsTo
+    public function kingdom(): BelongsTo
     {
-        return $this->belongsTo(City::class);
+        return $this->belongsTo(Kingdom::class);
+    }
+
+    public function currentKingdom()
+    {
+        return $this->belongsTo(Kingdom::class, 'current_kingdom_id');
     }
 
     public function currentCity()

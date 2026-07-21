@@ -45,8 +45,7 @@ interface ThreadPost {
   character?: {
     id: string | number | null;
     name?: string | null;
-    city?: string | null;
-    current_city?: string | null;
+    kingdom?: string | null;
     location?: string | null;
     title?: string | null;
     rank?: string | null;
@@ -66,7 +65,7 @@ interface ThreadApiResponse {
     status_label: string;
     moderation_message: string | null;
     user_id: number | null;
-    village: { id: string | number; name: string; city?: string };
+    city: { id: string | number; name: string; kingdom?: string };
   };
   posts: ThreadPost[];
   viewer: {
@@ -106,8 +105,8 @@ function normalizeCharacter(post: ThreadPost) {
     id: character.id ?? null,
     name,
     initial: name.charAt(0).toUpperCase() || "?",
-    city: character.city || "Unknown City",
-    location: character.current_city || character.location || character.city || "Uncharted",
+    kingdom: character.kingdom || "Unknown Kingdom",
+    location: character.location || character.kingdom || "Uncharted",
     rank: character.rank || character.auto_rank || "Wandering Scribe",
     title: character.title || character.rank || character.auto_rank || "Wandering Scribe",
     status: character.status || (post.status === "approved" || post.status === "open" ? "Active" : "Awaiting Council"),
@@ -251,7 +250,7 @@ function PostCharacterPanel({ post }: { post: ThreadPost }) {
 
       <div className="mt-4 space-y-3">
         {[
-          { icon: MapPin, label: "City", value: character.city },
+          { icon: MapPin, label: "Kingdom", value: character.kingdom },
           { icon: Feather, label: "Location", value: character.location },
           { icon: Shield, label: "Rank", value: character.rank },
           { icon: Scroll, label: "Identity", value: "Public Character" },
@@ -504,7 +503,7 @@ export function ThreadPage() {
       <button onClick={() => navigate(-1)} className="group mb-6 flex items-center gap-2">
         <ArrowLeft className="h-3.5 w-3.5 text-[#746a5a] transition group-hover:text-[#c8a84b]" />
         <span className="font-display text-xs uppercase tracking-[0.2em] text-[#746a5a] transition group-hover:text-[#c8a84b]">
-          Back to {thread.village.name}
+          Back to {thread.city.name}
         </span>
       </button>
 
@@ -518,7 +517,7 @@ export function ThreadPage() {
               <ThreadStatusBadge status={thread.status} label={thread.status_label} />
               <span className="inline-flex items-center gap-1.5 font-display text-xs tracking-wider">
                 <MapPin className="h-3 w-3" />
-                {thread.village.name}
+                {thread.city.name}
               </span>
               <span className="inline-flex items-center gap-1.5 font-display text-xs tracking-wider">
                 <Scroll className="h-3 w-3" />
@@ -572,7 +571,7 @@ export function ThreadPage() {
                           <div className="mt-2 flex flex-wrap items-center gap-3 text-[#746a5a]">
                             <span className="inline-flex items-center gap-1.5 font-display text-xs tracking-wider">
                               <MapPin className="h-3 w-3" />
-                              {character.city}
+                              {character.kingdom}
                             </span>
                             <span className="inline-flex items-center gap-1.5 font-display text-xs tracking-wider">
                               <Clock className="h-3 w-3" />
@@ -726,7 +725,7 @@ export function ThreadPage() {
                       </div>
                       <div className="min-w-0">
                         <div className="truncate text-sm text-[#efe7d2]">{name}</div>
-                        <div className="truncate text-xs text-[#746a5a]">{char.city || "Unknown City"}</div>
+                        <div className="truncate text-xs text-[#746a5a]">{char.kingdom || "Unknown Kingdom"}</div>
                       </div>
                     </Link>
                   );

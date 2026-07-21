@@ -2,10 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\CitySelectionController;
+use App\Http\Controllers\KingdomSelectionController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\OnboardingController;
-use App\Http\Controllers\VillageController;
+use App\Http\Controllers\CityController;
 use App\Http\Controllers\ThreadController;
 use App\Http\Controllers\CharacterController;
 use App\Http\Controllers\EventController;
@@ -14,8 +14,11 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\WorldChronicleController;
 use App\Http\Controllers\RewardHistoryController;
 use App\Http\Controllers\MarketController;
+use App\Http\Controllers\ShopController;
+use App\Http\Controllers\BlacksmithController;
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\RecentActivityController;
+use App\Http\Controllers\CouncilLetterController;
 
 // Auth Routes
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
@@ -29,9 +32,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/onboarding', [OnboardingController::class, 'show'])->name('onboarding');
     Route::post('/onboarding/stage', [OnboardingController::class, 'submitStage'])->name('onboarding.submit');
 
-    // City selection — after admin approve, before entering the game
-    Route::get('/choose-city', [CitySelectionController::class, 'show'])->name('choose-city');
-    Route::post('/choose-city', [CitySelectionController::class, 'store'])->name('choose-city.store');
+    // Kingdom selection — after admin approve, before entering the game
+    Route::get('/choose-kingdom', [KingdomSelectionController::class, 'show'])->name('choose-kingdom');
+    Route::post('/choose-kingdom', [KingdomSelectionController::class, 'store'])->name('choose-kingdom.store');
 });
 
 // Legacy /pending → redirect to /onboarding
@@ -41,7 +44,7 @@ Route::get('/pending', function () {
 
 // API Routes for React frontend
 Route::prefix('api')->group(function () {
-    Route::get('/villages/{id}', [VillageController::class, 'apiShow']);
+    Route::get('/cities/{id}', [CityController::class, 'apiShow']);
     Route::get('/threads/{id}/posts', [ThreadController::class, 'apiPosts']);
     Route::middleware('auth')->group(function () {
         Route::post('/threads/{id}/posts', [ThreadController::class, 'apiStore']);
@@ -64,10 +67,10 @@ Route::get('/app/{any}', function () {
 // Protected Routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('home');
-    Route::get('/villages/{id}', [VillageController::class, 'show'])->middleware('city.selected')->name('village');
-    Route::get('/villages/{id}/threads/create', [ThreadController::class, 'create'])->middleware('city.selected')->name('thread.create');
-    Route::post('/villages/{id}/threads', [ThreadController::class, 'storeThread'])->middleware('city.selected')->name('thread.store');
-    Route::get('/threads/{id}', [ThreadController::class, 'show'])->middleware('city.selected')->name('thread');
+    Route::get('/cities/{id}', [CityController::class, 'show'])->middleware('kingdom.selected')->name('city');
+    Route::get('/cities/{id}/threads/create', [ThreadController::class, 'create'])->middleware('kingdom.selected')->name('thread.create');
+    Route::post('/cities/{id}/threads', [ThreadController::class, 'storeThread'])->middleware('kingdom.selected')->name('thread.store');
+    Route::get('/threads/{id}', [ThreadController::class, 'show'])->middleware('kingdom.selected')->name('thread');
     Route::get('/threads/{id}/edit', [ThreadController::class, 'edit'])->name('thread.edit');
     Route::put('/threads/{id}', [ThreadController::class, 'update'])->name('thread.update');
     Route::post('/threads/{id}/moderate', [ThreadController::class, 'moderate'])->name('thread.moderate');
@@ -95,12 +98,17 @@ Route::middleware(['auth'])->group(function () {
 
     // Inventory
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
+    Route::post('/inventory/permits/{id}/activate', [InventoryController::class, 'activatePermit'])->name('inventory.permits.activate');
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+
+    Route::post('/council/letters', [CouncilLetterController::class, 'store'])->name('council.store');
+    Route::get('/council/letters/{id}', [CouncilLetterController::class, 'show'])->name('council.show');
+    Route::post('/council/letters/{id}/reply', [CouncilLetterController::class, 'reply'])->name('council.reply');
 
     // Chronicle Archive (archived RP threads — read-only)
     Route::get('/archive', [ArchiveController::class, 'index'])->name('archive.index');
@@ -121,4 +129,15 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/market', [MarketController::class, 'store'])->name('market.store');
     Route::delete('/market/{id}', [MarketController::class, 'cancel'])->name('market.cancel');
     Route::post('/market/{id}/buy', [MarketController::class, 'buy'])->name('market.buy');
+
+    // Shop (instant purchase — gold or materials)
+    Route::get('/market/shop', [ShopController::class, 'index'])->name('market.shop');
+    Route::post('/market/shop/{recipe}/buy', [ShopController::class, 'buy'])->name('market.shop.buy');
+
+    // Blacksmith (collaborative crafting work orders)
+    Route::get('/blacksmith', [BlacksmithController::class, 'index'])->name('blacksmith.index');
+    Route::post('/blacksmith/orders', [BlacksmithController::class, 'createOrder'])->name('blacksmith.orders.create');
+    Route::get('/blacksmith/orders/{token}', [BlacksmithController::class, 'show'])->name('blacksmith.show');
+    Route::post('/blacksmith/orders/{token}/contribute', [BlacksmithController::class, 'contribute'])->name('blacksmith.contribute');
+    Route::post('/blacksmith/orders/{token}/claim', [BlacksmithController::class, 'claim'])->name('blacksmith.claim');
 });

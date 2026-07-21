@@ -17,11 +17,11 @@
                         <span class="archive-label">Type</span>
                         <div class="mt-1 text-text">{{ ucfirst(str_replace('_', ' ', $event->type)) }}</div>
                     </div>
-                    @if($event->city)
+                    @if($event->kingdom)
                     <div class="border-t border-gold/10 pt-3">
                         <span class="archive-label">Kingdom</span>
-                        <div class="mt-1 font-display text-sm" style="color:{{ $event->city->color }}">
-                            {{ $event->city->name }}
+                        <div class="mt-1 font-display text-sm" style="color:{{ $event->kingdom->color }}">
+                            {{ $event->kingdom->name }}
                         </div>
                     </div>
                     @endif
@@ -123,11 +123,11 @@
         <div class="h-1 w-full" style="background:linear-gradient(90deg, {{ $tc }}, transparent)"></div>
         <div class="p-7">
             <div class="mb-3 flex flex-wrap items-center gap-3">
-                <span style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:2.5px; color:{{ $tc }}; border:0.5px solid {{ $tc }}66; padding:3px 10px;">
+                <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2.5px; color:{{ $tc }}; border:0.5px solid {{ $tc }}66; padding:3px 10px;">
                     {{ $ti }} {{ $tl }}
                 </span>
                 <span class="font-display text-xs uppercase tracking-widest"
-                      style="color:{{ $event->city->color ?? '#c8a84b' }}88">
+                      style="color:{{ $event->kingdom->color ?? '#c8a84b' }}88">
                     {{ $event->status }}
                 </span>
             </div>
@@ -202,7 +202,7 @@
                         :rank="strtolower($char->auto_rank)"
                         :size="40"
                         :initial="mb_substr($char->name, 0, 1)"
-                        :color="$char->city->color ?? '#c8a84b'"
+                        :color="$char->kingdom->color ?? '#c8a84b'"
                     >
                         @if($char->avatar)
                             <img src="{{ $char->avatar_url }}" alt="{{ $char->name }}"

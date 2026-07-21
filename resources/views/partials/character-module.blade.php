@@ -1,7 +1,7 @@
 @if(isset($character) && $character)
 @php
     $stats    = $character->stats;
-    $cityColor = $character->city->color ?? '#c8a84b';
+    $kingdomColor = $character->kingdom->color ?? '#c8a84b';
     $initial  = strtoupper(mb_substr($character->name, 0, 1));
     $statBars = [
         'STR' => ['val' => $stats?->str  ?? 0, 'max' => 100, 'color' => '#c8a84b'],
@@ -34,11 +34,11 @@
 
         {{-- ── MINI (collapsed) ─────────────────────────────── --}}
         <div id="charMini" class="right-card-mini">
-            <div class="right-mini-avatar" style="border-color:{{ $cityColor }}99">
+            <div class="right-mini-avatar" style="border-color:{{ $kingdomColor }}99">
                 @if($character->avatar)
                     <img src="{{ $character->avatar_url }}" alt="{{ $character->name }}" class="h-full w-full object-cover">
                 @else
-                    <span style="color:{{ $cityColor }}">{{ $initial }}</span>
+                    <span style="color:{{ $kingdomColor }}">{{ $initial }}</span>
                 @endif
             </div>
             <div class="min-w-0 flex-1">
@@ -57,7 +57,7 @@
             <div class="right-character-body">
 
                 {{-- Avatar --}}
-                <div class="right-avatar-circle" style="border-color:{{ $cityColor }}88">
+                <div class="right-avatar-circle" style="border-color:{{ $kingdomColor }}88">
                     @if($character->avatar)
                         <img src="{{ $character->avatar_url }}" alt="{{ $character->name }}" class="h-full w-full object-cover">
                     @else
@@ -76,9 +76,13 @@
 
                 {{-- Info rows — compact divider style --}}
                 <div class="divide-y" style="border-color:rgba(200,168,75,.08)">
+                    @php
+                        $locKingdom = $character->currentKingdom ?? $character->kingdom;
+                        $locationValue = ($locKingdom?->name ?? '-') . ($character->currentCity ? ', ' . $character->currentCity->name : '');
+                    @endphp
                     @foreach([
-                        'KINGDOM'  => $character->city?->name ?? '-',
-                        'LOCATION' => $character->currentCity?->name ?? $character->city?->name ?? '-',
+                        'KINGDOM'  => $character->kingdom?->name ?? '-',
+                        'LOCATION' => $locationValue,
                         'RANK'     => ucfirst($character->auto_rank ?? 'Stranger'),
                         'POSTS'    => ($character->posts_count ?? 0) . ' chronicles',
                     ] as $label => $value)

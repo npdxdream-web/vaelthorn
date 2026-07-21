@@ -12,10 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Laravel Cloud (and most PaaS hosts) sit behind a load balancer whose IP isn't fixed —
+        // without this, Request::secure()/url()/isSecure() misdetect HTTPS, breaking secure
+        // cookies and https:// URL generation in production.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'admin.access'      => \App\Http\Middleware\EnsureAdminAccess::class,
-            'onboarding.access' => \App\Http\Middleware\EnsureOnboardingAccess::class,
-            'city.selected'     => \App\Http\Middleware\EnsureCitySelected::class,
+            'kingdom.selected'  => \App\Http\Middleware\EnsureKingdomSelected::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

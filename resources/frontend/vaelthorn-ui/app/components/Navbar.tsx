@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { Crown, Home, Map, Users, Scroll, User } from "lucide-react";
+import { Crown, Home, Users, Scroll, User } from "lucide-react";
 import { Button } from "./ui/button";
 
 export function Navbar() {
@@ -36,15 +36,6 @@ export function Navbar() {
               className={`h-10 w-10 rounded-none border border-transparent ${isActive('/') ? 'border-[#c8a84b]/25 bg-[#c8a84b]/8 text-[#c8a84b]' : 'text-[#746a5a] hover:bg-[#c8a84b]/6 hover:text-[#c8a84b]'}`}
             >
               <Home className="h-5 w-5" />
-            </Button>
-          </Link>
-          <Link to="/village/ironveil">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className={`h-10 w-10 rounded-none border border-transparent ${location.pathname.includes('/village') ? 'border-[#c8a84b]/25 bg-[#c8a84b]/8 text-[#c8a84b]' : 'text-[#746a5a] hover:bg-[#c8a84b]/6 hover:text-[#c8a84b]'}`}
-            >
-              <Map className="h-5 w-5" />
             </Button>
           </Link>
           <Link to="/register">

@@ -3,10 +3,11 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CharacterResource\Pages;
+use App\Filament\Resources\CharacterResource\RelationManagers\BadgesRelationManager;
 use App\Filament\Resources\CharacterResource\RelationManagers\InventoryRelationManager;
 use App\Models\Character;
 use App\Models\OnboardingEntry;
-use App\Models\OnboardingSlot;
+use App\Services\NotificationService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -33,6 +34,29 @@ class CharacterResource extends Resource
         // continues onboarding on /onboarding, then chooses city after completion.
     }
 
+    /**
+     * Reject the 3-stage onboarding submission — clears the entries and stage
+     * flags so the character can redo it, stores the reason, and notifies the
+     * player. Status stays 'pending' (not 'rejected') so this remains a normal
+     * "send back for revision" loop rather than a terminal state.
+     */
+    public static function rejectCharacter(Character $record, string $reason): void
+    {
+        OnboardingEntry::where('character_id', $record->id)->delete();
+
+        $stats = $record->stats;
+        if ($stats) {
+            $stats->update([
+                'stage_1_completed' => false,
+                'stage_2_completed' => false,
+                'stage_3_completed' => false,
+                'rejection_reason'  => $reason,
+            ]);
+        }
+
+        app(NotificationService::class)->notifyOnboardingRejected($record, $reason);
+    }
+
     // ─── Form ─────────────────────────────────────────────────────────────────
 
     public static function form(Form $form): Form
@@ -44,9 +68,9 @@ class CharacterResource extends Resource
                     Forms\Components\Select::make('user_id')
                         ->relationship('user', 'name')
                         ->label('User'),
-                    Forms\Components\Select::make('city_id')
-                        ->relationship('city', 'name')
-                        ->label('เมือง'),
+                    Forms\Components\Select::make('kingdom_id')
+                        ->relationship('kingdom', 'name')
+                        ->label('อาณาจักร'),
                     Forms\Components\TextInput::make('name')
                         ->label('ชื่อตัวละคร'),
                     Forms\Components\Select::make('status')
@@ -84,84 +108,7 @@ class CharacterResource extends Resource
                     Forms\Components\TextInput::make('agi')->label('AGI')->numeric()->default(10)->minValue(0),
                 ]),
 
-            Forms\Components\Section::make('Onboarding Progress (Level 0 → 1)')
-                ->description('แสดงเฉพาะเมื่อ Level = 0 — ติดตาม Stage A/B ก่อน Approve')
-                ->collapsible()
-                ->collapsed()
-                ->visible(fn ($record) => $record?->stats?->level === 0)
-                ->schema([
-                    Forms\Components\Placeholder::make('stage_a_status')
-                        ->label('Stage A — บันทึกตัวตน (Training Zone)')
-                        ->content(function ($record) {
-                            if (! $record) {
-                                return 'ไม่มีข้อมูล';
-                            }
-                            $stats = $record->stats;
-                            $slots = OnboardingSlot::where('character_id', $record->id)
-                                ->orderBy('slot_number')->get();
-                            $filled = $slots->where('status', 'filled')->count();
-
-                            if ($stats?->stage_a_completed) {
-                                return new \Illuminate\Support\HtmlString(
-                                    '<span style="color:#4ade80">✓ สำเร็จ (3/3 slot filled)</span>'
-                                );
-                            }
-
-                            $parts = $slots->map(fn ($s) =>
-                                $s->status === 'filled'
-                                    ? "<span style='color:#c8a84b'>Slot {$s->slot_number} ✓ (Post #{$s->post_id})</span>"
-                                    : "<span style='color:#3a3020'>Slot {$s->slot_number} ○ (empty)</span>"
-                            )->join(' &nbsp;');
-
-                            return new \Illuminate\Support\HtmlString(
-                                "{$parts}<br><small style='color:#6b6050'>{$filled}/3 filled</small>"
-                            );
-                        }),
-
-                    Forms\Components\Placeholder::make('stage_b_status')
-                        ->label('Stage B — EXP จาก Event Onboarding')
-                        ->content(function ($record) {
-                            if (! $record) {
-                                return 'ไม่มีข้อมูล';
-                            }
-                            $stats     = $record->stats;
-                            $stageBExp = $stats?->stage_b_exp ?? 0;
-                            $required  = config('leveling.stage_b_required_exp', 6);
-
-                            if (! $stats?->stage_a_completed) {
-                                return new \Illuminate\Support\HtmlString(
-                                    '<span style="color:#6b6050">รอ Stage A สำเร็จก่อน</span>'
-                                );
-                            }
-
-                            $color = $stageBExp >= $required ? '#4ade80' : '#c8a84b';
-                            return new \Illuminate\Support\HtmlString(
-                                "<span style='color:{$color}'>{$stageBExp}/{$required} EXP</span>"
-                            );
-                        }),
-
-                    Forms\Components\Placeholder::make('stage_a_warning')
-                        ->label('⚠ ความผิดปกติ')
-                        ->content(function ($record) {
-                            if (! $record) {
-                                return null;
-                            }
-                            $stats  = $record->stats;
-                            $filled = OnboardingSlot::where('character_id', $record->id)
-                                ->where('status', 'filled')->count();
-
-                            if ($stats?->stage_a_completed && $filled < 3) {
-                                return new \Illuminate\Support\HtmlString(
-                                    '<span style="color:#f87171">stage_a_completed = true แต่ filled slot เหลือ '
-                                    . $filled . '/3 — อาจเกิดจาก Reward Audit revoke. Admin ต้องตัดสินใจเอง</span>'
-                                );
-                            }
-                            return new \Illuminate\Support\HtmlString('<span style="color:#6b6050">ปกติ</span>');
-                        })
-                        ->visible(fn ($record) => $record?->stats?->stage_a_completed ?? false),
-                ]),
-
-            Forms\Components\Section::make('หลักฐาน 3 ด่าน (Onboarding ใหม่)')
+            Forms\Components\Section::make('หลักฐาน 3 ด่าน (Onboarding)')
                 ->description('บันทึกที่ผู้เล่นส่งในแต่ละด่าน — อ่านก่อนกด Approve')
                 ->collapsible()
                 ->schema(function ($record) {
@@ -221,8 +168,8 @@ class CharacterResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label('ตัวละคร')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('city.name')
-                    ->label('เมือง')
+                Tables\Columns\TextColumn::make('kingdom.name')
+                    ->label('อาณาจักร')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('stats.level')
                     ->label('Level')
@@ -294,13 +241,17 @@ class CharacterResource extends Resource
                     ->label('Reject')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->requiresConfirmation()
-                    ->modalHeading('Reject ตัวละคร')
-                    ->modalDescription('ยืนยันการ Reject — ตัวละครจะถูก set เป็น Rejected')
-                    ->action(function (Character $record) {
-                        $record->update(['status' => 'rejected']);
+                    ->form([
+                        Forms\Components\Textarea::make('reason')
+                            ->label('เหตุผลที่ไม่ผ่าน')
+                            ->helperText('ระบุให้ชัดเจนว่าด่านไหน หรือเกณฑ์ใดไม่ถึง — ผู้เล่นจะเห็นข้อความนี้และต้องทำแบบทดสอบ 3 ด่านใหม่ทั้งหมด')
+                            ->required()
+                            ->rows(4),
+                    ])
+                    ->action(function (Character $record, array $data) {
+                        static::rejectCharacter($record, $data['reason']);
                         Notification::make()
-                            ->title("Reject '{$record->name}' แล้ว")
+                            ->title("Reject '{$record->name}' แล้ว — แจ้งเหตุผลและรีเซ็ตด่านให้ทำใหม่แล้ว")
                             ->warning()
                             ->send();
                     })
@@ -317,6 +268,7 @@ class CharacterResource extends Resource
     {
         return [
             InventoryRelationManager::class,
+            BadgesRelationManager::class,
         ];
     }
 

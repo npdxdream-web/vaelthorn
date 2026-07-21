@@ -52,19 +52,19 @@
     <x-slot:left>
         <div class="sticky top-20">
             <div class="archive-panel p-5">
-                <h3 class="font-display mb-4 text-base text-gold">{{ $village->name }}</h3>
+                <h3 class="font-display mb-4 text-base text-gold">{{ $city->name }}</h3>
                 <div class="space-y-3 text-sm">
                     <div class="flex flex-col gap-0.5">
                         <span class="archive-label">City</span>
-                        <span style="color:{{ $village->city->color ?? '#c8a84b' }}">{{ $village->city->name ?? '—' }}</span>
+                        <span style="color:{{ $city->kingdom->color ?? '#c8a84b' }}">{{ $city->kingdom->name ?? '—' }}</span>
                     </div>
                     <div class="border-t border-gold/10 pt-3">
-                        <a href="{{ route('village', $village->id) }}"
+                        <a href="{{ route('city', $city->id) }}"
                            class="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-gold transition-colors">
                             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                             </svg>
-                            Back to {{ $village->name }}
+                            Back to {{ $city->name }}
                         </a>
                     </div>
                 </div>
@@ -76,16 +76,16 @@
     <div class="mb-4 flex items-center gap-2 text-sm text-text-muted">
         <a href="{{ route('home') }}" class="hover:text-gold">Thiran</a>
         <span>/</span>
-        <a href="{{ route('village', $village->id) }}" class="hover:text-gold">{{ $village->name }}</a>
+        <a href="{{ route('city', $city->id) }}" class="hover:text-gold">{{ $city->name }}</a>
         <span>/</span>
         <span class="text-text">สร้างกระทู้ใหม่</span>
     </div>
 
     <div class="rounded-xl border border-border bg-bg-elevated p-6">
         <h1 class="font-display mb-1 text-2xl text-gold">Start a New Tale</h1>
-        <p class="mb-6 text-sm text-text-muted">ใน {{ $village->name }} — กระทู้จะรอ Admin อนุมัติก่อนเผยแพร่</p>
+        <p class="mb-6 text-sm text-text-muted">ใน {{ $city->name }} — กระทู้จะรอ Admin อนุมัติก่อนเผยแพร่</p>
 
-        <form method="POST" action="{{ route('thread.store', $village->id) }}" id="create-thread-form">
+        <form method="POST" action="{{ route('thread.store', $city->id) }}" id="create-thread-form">
             @csrf
             <input type="hidden" name="action" id="form-action" value="submit">
             <input type="hidden" name="content" id="create-content-input">
@@ -167,7 +167,7 @@
 
             {{-- Action buttons --}}
             <div class="flex items-center justify-between gap-3">
-                <a href="{{ route('village', $village->id) }}"
+                <a href="{{ route('city', $city->id) }}"
                    class="rounded-lg border border-[#2a2a2a] px-4 py-2 text-sm text-text-muted hover:border-[#D4AF37] hover:text-text">
                     ยกเลิก
                 </a>

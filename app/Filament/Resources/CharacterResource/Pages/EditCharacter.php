@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CharacterResource\Pages;
 
 use App\Filament\Resources\CharacterResource;
 use Filament\Actions;
+use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
@@ -43,12 +44,18 @@ class EditCharacter extends EditRecord
                 ->label('Reject ตัวละคร')
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
-                ->requiresConfirmation()
-                ->action(function () {
+                ->form([
+                    Forms\Components\Textarea::make('reason')
+                        ->label('เหตุผลที่ไม่ผ่าน')
+                        ->helperText('ระบุให้ชัดเจนว่าด่านไหน หรือเกณฑ์ใดไม่ถึง — ผู้เล่นจะเห็นข้อความนี้และต้องทำแบบทดสอบ 3 ด่านใหม่ทั้งหมด')
+                        ->required()
+                        ->rows(4),
+                ])
+                ->action(function (array $data) {
                     $record = $this->getRecord();
-                    $record->update(['status' => 'rejected']);
+                    CharacterResource::rejectCharacter($record, $data['reason']);
                     Notification::make()
-                        ->title("Reject '{$record->name}' แล้ว")
+                        ->title("Reject '{$record->name}' แล้ว — แจ้งเหตุผลและรีเซ็ตด่านให้ทำใหม่แล้ว")
                         ->warning()
                         ->send();
                     $this->refreshFormData(['status']);

@@ -1,12 +1,10 @@
 import { Link, useLocation } from "react-router";
 import {
   Home,
-  Map,
   Clock,
   Calendar,
   BookOpen,
   ShoppingCart,
-  Star,
   Gift,
   Bell,
 } from "lucide-react";
@@ -15,15 +13,15 @@ interface BottomNavProps {
   notificationCount?: number;
 }
 
+// `external: true` items are real pages on the Blade app (not part of this SPA yet),
+// so they use a plain <a> for a full page navigation instead of client-side <Link>.
 const NAV_ITEMS = [
-  { icon: Home, to: "/", label: "Home" },
-  { icon: Map, to: "/village/ironveil", label: "Map" },
-  { icon: Clock, to: "/activity", label: "Activity" },
-  { icon: Calendar, to: "/events", label: "Events" },
-  { icon: BookOpen, to: "/chronicles", label: "Chronicles" },
-  { icon: ShoppingCart, to: "/market", label: "Market" },
-  { icon: Star, to: "/achievements", label: "Achievements" },
-  { icon: Gift, to: "/rewards", label: "Rewards" },
+  { icon: Home, to: "/", label: "Home", external: false },
+  { icon: Clock, to: "/activity", label: "Activity", external: false },
+  { icon: Calendar, to: "/events", label: "Events", external: true },
+  { icon: BookOpen, to: "/chronicles", label: "Chronicles", external: true },
+  { icon: ShoppingCart, to: "/market", label: "Market", external: true },
+  { icon: Gift, to: "/rewards", label: "Rewards", external: true },
 ];
 
 export function BottomNav({ notificationCount = 0 }: BottomNavProps) {
@@ -34,27 +32,29 @@ export function BottomNav({ notificationCount = 0 }: BottomNavProps) {
     return location.pathname.startsWith(path);
   };
 
+  const itemClass = (active: boolean) =>
+    `flex flex-col items-center gap-0.5 rounded p-1.5 transition-colors ${
+      active ? "text-[#c8a84b]" : "text-[#746a5a] hover:text-[#c8a84b]/70"
+    }`;
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#c8a84b]/15 bg-[#090807]/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-lg items-center justify-around px-1 py-3">
-        {NAV_ITEMS.map(({ icon: Icon, to, label }) => (
-          <Link
-            key={to}
-            to={to}
-            aria-label={label}
-            className={`flex flex-col items-center gap-0.5 rounded p-1.5 transition-colors ${
-              isActive(to)
-                ? "text-[#c8a84b]"
-                : "text-[#746a5a] hover:text-[#c8a84b]/70"
-            }`}
-          >
-            <Icon className="h-5 w-5" />
-          </Link>
-        ))}
+        {NAV_ITEMS.map(({ icon: Icon, to, label, external }) =>
+          external ? (
+            <a key={to} href={to} aria-label={label} className={itemClass(false)}>
+              <Icon className="h-5 w-5" />
+            </a>
+          ) : (
+            <Link key={to} to={to} aria-label={label} className={itemClass(isActive(to))}>
+              <Icon className="h-5 w-5" />
+            </Link>
+          )
+        )}
 
-        {/* Bell with notification badge */}
-        <Link
-          to="/notifications"
+        {/* Bell with notification badge — /notifications is a Blade page, full navigation */}
+        <a
+          href="/notifications"
           aria-label="Notifications"
           className="relative flex flex-col items-center gap-0.5 rounded p-1.5 text-[#746a5a] transition-colors hover:text-[#c8a84b]/70"
         >
@@ -64,7 +64,7 @@ export function BottomNav({ notificationCount = 0 }: BottomNavProps) {
               {notificationCount > 99 ? "99+" : notificationCount}
             </span>
           )}
-        </Link>
+        </a>
       </div>
     </nav>
   );

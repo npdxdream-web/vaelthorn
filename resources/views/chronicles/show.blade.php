@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Chronicle — ' . ($chronicle->event?->title ?? 'Entry'))
+@section('title', 'Chronicle — ' . $chronicle->display_title)
 
 @section('content')
 <x-public.shell :character-status="$currentCharacter">
@@ -11,16 +11,8 @@
 
             {{-- Chronicle meta --}}
             @php
-                $city = $chronicle->event?->city;
-                $kingdomColors = [
-                    'Silvaria'  => '#4ade80',
-                    'Aurantia'  => '#f59e0b',
-                    'Kalif'     => '#fb923c',
-                    'Frostwell' => '#60a5fa',
-                    'Kyoren'    => '#a78bfa',
-                    'Celestia'  => '#c8a84b',
-                ];
-                $kcolor = $city ? ($kingdomColors[$city->name] ?? '#c8a84b') : '#c8a84b';
+                $kingdom = $chronicle->display_kingdom;
+                $kcolor = $kingdom?->color ?? '#c8a84b';
             @endphp
 
             <div class="archive-panel p-5">
@@ -32,16 +24,16 @@
                             {{ $chronicle->generated_at?->format('d M Y') }}
                         </p>
                     </div>
-                    @if($city)
+                    @if($kingdom)
                         <div>
                             <p class="archive-label text-[0.6rem] text-text-subtle">Kingdom</p>
                             <p class="font-display text-sm" style="color:{{ $kcolor }}">
-                                {{ $city->name }}
+                                {{ $kingdom->name }}
                             </p>
                         </div>
                         <div>
                             <p class="archive-label text-[0.6rem] text-text-subtle">Capital</p>
-                            <p class="text-sm text-text-muted">{{ $city->name }}</p>
+                            <p class="text-sm text-text-muted">{{ $kingdom->name }}</p>
                         </div>
                     @endif
                     @if($chronicle->event)
@@ -65,7 +57,7 @@
                            class="block rounded border border-gold/15 bg-gold/3 p-3 transition hover:border-gold/30 hover:bg-gold/5">
                             <p class="archive-label text-[0.6rem] text-text-subtle">← Previous</p>
                             <p class="mt-1 font-display text-xs text-gold/70">
-                                {{ Str::limit($prev->event?->title ?? 'Chronicle', 30) }}
+                                {{ Str::limit($prev->display_title, 30) }}
                             </p>
                         </a>
                     @endif
@@ -74,7 +66,7 @@
                            class="block rounded border border-gold/15 bg-gold/3 p-3 transition hover:border-gold/30 hover:bg-gold/5">
                             <p class="archive-label text-[0.6rem] text-text-subtle">Next →</p>
                             <p class="mt-1 font-display text-xs text-gold/70">
-                                {{ Str::limit($next->event?->title ?? 'Chronicle', 30) }}
+                                {{ Str::limit($next->display_title, 30) }}
                             </p>
                         </a>
                     @endif
@@ -94,15 +86,19 @@
         <div class="h-1" style="background:linear-gradient(90deg,{{ $kcolor }}88,transparent)"></div>
         <div class="p-8">
             <p class="archive-label mb-2" style="color:{{ $kcolor }}">
-                {{ $city ? $city->name : 'World Chronicle' }}
+                {{ $kingdom ? $kingdom->name : 'World Chronicle' }}
             </p>
-            @if($chronicle->event)
-                <h1 class="font-decorative mb-3 text-4xl text-gold">
-                    {{ $chronicle->event->title }}
-                </h1>
-            @endif
+            <h1 class="font-decorative mb-3 text-4xl text-gold">
+                {{ $chronicle->display_title }}
+            </h1>
             <div class="flex items-center gap-3 text-sm text-text-subtle">
                 <span>{{ $chronicle->generated_at?->format('d M Y, H:i') }}</span>
+                @if($chronicle->category)
+                    <span>·</span>
+                    <span class="rounded border border-gold/20 px-2 py-0.5 font-display text-xs text-gold/60">
+                        {{ strtoupper($chronicle->category) }}
+                    </span>
+                @endif
                 @if($chronicle->event)
                     <span>·</span>
                     <span class="rounded border border-gold/20 px-2 py-0.5 font-display text-xs text-gold/60">

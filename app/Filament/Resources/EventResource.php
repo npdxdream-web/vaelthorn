@@ -50,9 +50,9 @@ class EventResource extends Resource
                     ])
                     ->default('draft'),
 
-                Forms\Components\Select::make('city_id')
-                    ->label('เมือง')
-                    ->relationship('city', 'name')
+                Forms\Components\Select::make('kingdom_id')
+                    ->label('อาณาจักร')
+                    ->relationship('kingdom', 'name')
                     ->nullable(),
 
                 Forms\Components\TextInput::make('exp_reward')
@@ -115,8 +115,8 @@ class EventResource extends Resource
                     ->badge()
                     ->color('success'),
 
-                Tables\Columns\TextColumn::make('city.name')
-                    ->label('เมือง')
+                Tables\Columns\TextColumn::make('kingdom.name')
+                    ->label('อาณาจักร')
                     ->default('—'),
 
                 Tables\Columns\TextColumn::make('start_at')

@@ -36,6 +36,7 @@
                             'material'   => ['💎', 'Materials'],
                             'key_item'   => ['🗝', 'Key Items'],
                             'currency'   => ['💰', 'Currency'],
+                            'permit'     => ['📜', 'Travel Permits'],
                         ];
                     @endphp
                     @foreach($typeIcons as $type => [$icon, $label])
@@ -152,6 +153,27 @@
                                         <p class="mb-2 text-xs leading-relaxed text-text-muted">
                                             {{ $item->description }}
                                         </p>
+                                    @endif
+
+                                    @if($type === 'permit' && $item->travelPermit)
+                                        @php $permit = $item->travelPermit; @endphp
+                                        <div class="mb-2 border-t border-gold/10 pt-2 text-xs">
+                                            <div class="mb-1">
+                                                <span class="text-text-subtle">ปลายทาง:</span>
+                                                <span class="text-gold">{{ $permit->kingdom?->name ?? '—' }}</span>
+                                            </div>
+                                            @if(! $permit->activated_at)
+                                                <div class="mb-2 text-amber-300">ยังไม่ได้ใช้งาน ({{ $permit->valid_days }} วันหลังใช้งาน)</div>
+                                                <form method="POST" action="{{ route('inventory.permits.activate', $permit->id) }}">
+                                                    @csrf
+                                                    <button type="submit" class="btn-primary w-full py-1.5 text-xs">ใช้งานใบอนุญาต</button>
+                                                </form>
+                                            @elseif($permit->isActive())
+                                                <div class="text-emerald-400">หมดอายุวันที่ {{ $permit->expires_at->format('d M Y H:i') }}</div>
+                                            @else
+                                                <div class="text-red-400">หมดอายุแล้วเมื่อ {{ $permit->expires_at->format('d M Y H:i') }}</div>
+                                            @endif
+                                        </div>
                                     @endif
 
                                     @if(!empty($bonuses))

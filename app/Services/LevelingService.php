@@ -2,112 +2,25 @@
 
 namespace App\Services;
 
-use App\Models\AppSetting;
 use App\Models\Character;
 use App\Models\Event;
 use App\Models\Inventory;
-use App\Models\OnboardingSlot;
 use App\Models\Post;
 use App\Models\RewardLog;
+use App\Models\Thread;
 
 class LevelingService
 {
     // ─── Public entry-points called by controllers ────────────────────────────
 
     /**
-     * Called when a post is CREATED in a training-zone village.
-     * Fills the next empty onboarding slot and grants 1 EXP immediately (no approval needed).
-     * Returns true if a slot was filled, false if all 3 were already full.
-     */
-    public function handleTrainingZonePost(Post $post): bool
-    {
-        $post->loadMissing(['character.stats']);
-        $character = $post->character;
-
-        if (! $character) {
-            return false;
-        }
-
-        $stats = $character->stats;
-        if (! $stats || $stats->level !== 0 || $stats->stage_a_completed) {
-            return false;
-        }
-
-        // Find or create slots for this character (3 total)
-        $this->ensureSlotsExist($character->id);
-
-        $emptySlot = OnboardingSlot::where('character_id', $character->id)
-            ->where('status', 'empty')
-            ->orderBy('slot_number')
-            ->first();
-
-        if (! $emptySlot) {
-            return false; // all slots already filled
-        }
-
-        $emptySlot->update([
-            'post_id' => $post->id,
-            'status'  => 'filled',
-        ]);
-
-        // Auto-approve the training zone post
-        $post->update(['status' => 'approved']);
-
-        $this->addExp($character, 1, $post);
-
-        // Check if Stage A is now complete (all 3 slots filled)
-        $filledCount = OnboardingSlot::where('character_id', $character->id)
-            ->where('status', 'filled')
-            ->count();
-
-        if ($filledCount >= 3) {
-            $stats->stage_a_completed = true;
-            $stats->save();
-        }
-
-        return true;
-    }
-
-    /**
-     * Called when a post in the designated onboarding event is APPROVED.
-     * Increments stage_b_exp (a separate counter from total exp).
-     * Also awards normal exp via addExp for the audit trail.
-     * Triggers promoteToLevel1 when the stage_b threshold is met.
-     */
-    public function handleOnboardingEventPost(Post $post): void
-    {
-        $post->loadMissing(['character.stats', 'thread.event']);
-        $character = $post->character;
-
-        if (! $character) {
-            return;
-        }
-
-        $stats = $character->stats;
-
-        if (! $stats || $stats->level !== 0 || ! $stats->stage_a_completed) {
-            return;
-        }
-
-        $expReward = (int) ($post->thread?->event?->exp_reward ?? 1);
-        if ($expReward <= 0) {
-            return;
-        }
-
-        // Increment the onboarding gate counter (separate from total exp)
-        $stats->increment('stage_b_exp', $expReward);
-
-        // Also give the actual exp (creates RewardLog for audit trail)
-        $this->addExp($character, $expReward, $post);
-    }
-
-    /**
      * Called when a post is APPROVED (any context).
-     * Routes to the correct handler based on character level + post context.
+     * Level-0 characters are still in onboarding (see OnboardingService) and
+     * never reach here since they cannot write posts yet.
      */
     public function handlePostApproved(Post $post): void
     {
-        $post->loadMissing(['character.stats', 'thread.event']);
+        $post->loadMissing(['character.stats', 'thread.event', 'thread.city']);
         $character = $post->character;
 
         if (! $character) {
@@ -119,23 +32,14 @@ class LevelingService
             return;
         }
 
-        if ($stats->level === 0 && $stats->stage_a_completed) {
-            $onboardingEventId = AppSetting::onboardingEventId();
-            if ($onboardingEventId && $post->thread?->event_id == $onboardingEventId) {
-                $this->handleOnboardingEventPost($post);
-                return;
-            }
-        }
-
         if ($stats->level >= 1) {
             $this->handleNormalApproval($character, $post);
         }
     }
 
     /**
-     * Add exp to a character, create a RewardLog, and check for progression.
-     * For level-0 characters: calls checkOnboardingProgress (stage gate check).
-     * For level-1+ characters: calls checkLevelUp.
+     * Add exp to a character, create a RewardLog, and check for level-up.
+     * Level-0 characters never reach here (see handlePostApproved).
      */
     public function addExp(Character $character, int $amount, ?Post $sourcePost = null): void
     {
@@ -178,28 +82,8 @@ class LevelingService
             ]);
         }
 
-        if ($stats->level === 0) {
-            $this->checkOnboardingProgress($character);
-        } elseif ($stats->level >= 1) {
+        if ($stats->level >= 1) {
             $this->checkLevelUp($character);
-        }
-    }
-
-    /**
-     * Check whether the onboarding gate has been cleared (level 0 → 1).
-     * Condition: stage_a_completed AND stage_b_exp >= required.
-     */
-    public function checkOnboardingProgress(Character $character): void
-    {
-        $stats = $character->fresh()->stats;
-        if (! $stats || $stats->level !== 0) {
-            return;
-        }
-
-        $required = config('leveling.stage_b_required_exp', 6);
-
-        if ($stats->stage_a_completed && $stats->stage_b_exp >= $required) {
-            $this->promoteToLevel1($character);
         }
     }
 
@@ -218,17 +102,41 @@ class LevelingService
 
     private function handleNormalApproval(Character $character, Post $post): void
     {
-        $event = $post->thread?->event;
-        if (! $event) {
-            return;
-        }
+        $thread = $post->thread;
+        $event  = $thread?->event;
 
-        $expAmount = (int) ($event->exp_reward ?? 1);
+        $expAmount = $this->resolveExpAmount($thread, $event);
         if ($expAmount > 0) {
             $this->addExp($character, $expAmount, $post);
         }
 
-        $this->distributeEventRewards($character, $event);
+        if ($event) {
+            $this->distributeEventRewards($character, $event);
+        }
+    }
+
+    /**
+     * EXP precedence: an explicit per-thread override always wins; otherwise a
+     * self-serve (no-approval-required) zone pays a flat 1 EXP; otherwise fall
+     * back to the thread's Event reward. Threads with neither an override nor
+     * an event, in a zone that requires approval, pay 0 EXP (unchanged from
+     * the pre-existing behavior for plain moderated threads).
+     */
+    private function resolveExpAmount(?Thread $thread, ?Event $event): int
+    {
+        if ($thread && $thread->exp_override !== null) {
+            return (int) $thread->exp_override;
+        }
+
+        if ($thread?->city && ! $thread->city->require_approval) {
+            return 1;
+        }
+
+        if ($event) {
+            return (int) ($event->exp_reward ?? 1);
+        }
+
+        return 0;
     }
 
     private function checkLevelUp(Character $character): void
@@ -300,16 +208,6 @@ class LevelingService
                 'exp_received'  => 0,
                 'given_at'      => now(),
             ]);
-        }
-    }
-
-    private function ensureSlotsExist(int $characterId): void
-    {
-        for ($i = 1; $i <= 3; $i++) {
-            OnboardingSlot::firstOrCreate(
-                ['character_id' => $characterId, 'slot_number' => $i],
-                ['status' => 'empty']
-            );
         }
     }
 }

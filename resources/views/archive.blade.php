@@ -14,25 +14,25 @@
 
                     <div>
                         <label class="mb-1 block text-xs text-text-muted">อาณาจักร</label>
-                        <select name="city_id" onchange="this.form.submit()"
+                        <select name="kingdom_id" onchange="this.form.submit()"
                                 class="w-full rounded border border-border bg-bg-elevated px-3 py-1.5 text-sm text-text focus:border-gold/50 focus:outline-none">
                             <option value="">— ทั้งหมด —</option>
-                            @foreach($cities as $city)
-                                <option value="{{ $city->id }}" {{ request('city_id') == $city->id ? 'selected' : '' }}>
-                                    {{ $city->name }}
+                            @foreach($kingdoms as $kingdom)
+                                <option value="{{ $kingdom->id }}" {{ request('kingdom_id') == $kingdom->id ? 'selected' : '' }}>
+                                    {{ $kingdom->name }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
 
-                    @if(request('city_id'))
+                    @if(request('kingdom_id'))
                         <div>
-                            <label class="mb-1 block text-xs text-text-muted">หมู่บ้าน</label>
-                            <select name="village_id" onchange="this.form.submit()"
+                            <label class="mb-1 block text-xs text-text-muted">เมือง</label>
+                            <select name="city_id" onchange="this.form.submit()"
                                     class="w-full rounded border border-border bg-bg-elevated px-3 py-1.5 text-sm text-text focus:border-gold/50 focus:outline-none">
-                                <option value="">— ทุกหมู่บ้าน —</option>
-                                @foreach($villages as $v)
-                                    <option value="{{ $v->id }}" {{ request('village_id') == $v->id ? 'selected' : '' }}>
+                                <option value="">— ทุกเมือง —</option>
+                                @foreach($cities as $v)
+                                    <option value="{{ $v->id }}" {{ request('city_id') == $v->id ? 'selected' : '' }}>
                                         {{ $v->name }}
                                     </option>
                                 @endforeach
@@ -40,7 +40,7 @@
                         </div>
                     @endif
 
-                    @if(request('city_id') || request('village_id'))
+                    @if(request('kingdom_id') || request('city_id'))
                         <a href="{{ route('archive.index') }}"
                            class="block w-full rounded border border-gold/20 py-1.5 text-center font-display text-xs uppercase tracking-wider text-gold/60 transition hover:text-gold">
                             ล้างตัวกรอง
@@ -71,24 +71,24 @@
         <div class="space-y-3">
             @foreach($threads as $thread)
                 @php
-                    $city = $thread->village?->city;
+                    $kingdom = $thread->city?->kingdom;
                 @endphp
                 <a href="{{ route('thread', $thread->id) }}"
                    class="archive-panel-soft group flex items-start gap-4 p-5 transition hover:border-gold/25 block">
 
                     {{-- Kingdom color accent --}}
                     <div class="mt-1 h-10 w-1 shrink-0 rounded-full opacity-70"
-                         style="background: {{ $city?->color ?? '#c8a84b' }}"></div>
+                         style="background: {{ $kingdom?->color ?? '#c8a84b' }}"></div>
 
                     <div class="min-w-0 flex-1">
                         <div class="mb-1.5 flex flex-wrap items-center gap-2">
-                            @if($city)
-                                <span class="archive-label text-[0.6rem]" style="color: {{ $city->color ?? '#c8a84b' }}">
-                                    {{ $city->name }}
+                            @if($kingdom)
+                                <span class="archive-label text-[0.6rem]" style="color: {{ $kingdom->color ?? '#c8a84b' }}">
+                                    {{ $kingdom->name }}
                                 </span>
                             @endif
-                            @if($thread->village)
-                                <span class="text-xs text-text-subtle">{{ $thread->village->name }}</span>
+                            @if($thread->city)
+                                <span class="text-xs text-text-subtle">{{ $thread->city->name }}</span>
                             @endif
                             <span class="ml-auto text-xs text-text-subtle">
                                 จารึกเมื่อ {{ $thread->archived_at?->diffForHumans() ?? $thread->updated_at->diffForHumans() }}

@@ -17,21 +17,22 @@ class OnboardingController extends Controller
             return redirect()->route('login');
         }
 
-        // Active + level 1+ + no city → choose city
-        if ($character->status === 'active' && ($character->stats?->level ?? 0) >= 1 && ! $character->city_id) {
-            return redirect()->route('choose-city');
+        $nextStage   = $this->onboarding->nextStage($character);
+        $allComplete = $nextStage === null;
+
+        // Active + onboarding complete + no kingdom → choose kingdom
+        if ($character->status === 'active' && $allComplete && ! $character->kingdom_id) {
+            return redirect()->route('choose-kingdom');
         }
 
-        // Active + has city → game
-        if ($character->status === 'active' && $character->city_id) {
+        // Active + onboarding complete + has kingdom → game
+        if ($character->status === 'active' && $allComplete && $character->kingdom_id) {
             return redirect()->route('home');
         }
 
         $character->loadMissing(['stats', 'onboardingEntries']);
 
-        $entries     = $character->onboardingEntries->keyBy('stage'); // stage → entry
-        $nextStage   = $this->onboarding->nextStage($character);
-        $allComplete = $nextStage === null;
+        $entries = $character->onboardingEntries->keyBy('stage'); // stage → entry
 
         return view('onboarding', compact('character', 'entries', 'nextStage', 'allComplete'));
     }
@@ -40,7 +41,13 @@ class OnboardingController extends Controller
     {
         $character = auth()->user()?->character;
 
-        if (! $character || $character->status === 'active' && $character->city_id) {
+        if (! $character) {
+            return redirect()->route('login');
+        }
+
+        $allComplete = $this->onboarding->nextStage($character) === null;
+
+        if ($character->status === 'active' && $allComplete && $character->kingdom_id) {
             return redirect()->route('home');
         }
 

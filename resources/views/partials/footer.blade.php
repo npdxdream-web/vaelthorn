@@ -24,8 +24,8 @@
                 <nav class="flex flex-col gap-2">
                     <a href="{{ route('home') }}" class="text-sm text-text-subtle transition-colors hover:text-gold">World Map</a>
                     @auth
-                        @if(isset($character) && $character?->city?->villages?->first())
-                            <a href="{{ route('village', $character->city->villages->first()->id) }}" class="text-sm text-text-subtle transition-colors hover:text-gold">Villages & Forums</a>
+                        @if(isset($character) && $character?->kingdom?->cities?->first())
+                            <a href="{{ route('city', $character->kingdom->cities->first()->id) }}" class="text-sm text-text-subtle transition-colors hover:text-gold">Cities & Forums</a>
                         @endif
                     @endauth
                     <a href="{{ route('register') }}" class="text-sm text-text-subtle transition-colors hover:text-gold">Join the Chronicle</a>

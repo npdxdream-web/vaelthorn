@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Enums\UserRole;
 use App\Filament\Resources\UserResource\Pages;
-use App\Models\City;
+use App\Models\Kingdom;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -13,6 +13,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Closure;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\HtmlString;
 
 class UserResource extends Resource
 {
@@ -68,33 +69,22 @@ class UserResource extends Resource
                         ->disabled(! $isSuperAdmin)
                         ->dehydrated($isSuperAdmin),
 
-                    Forms\Components\Group::make([
-                        Forms\Components\TextInput::make('password')
-                            ->label('Password ใหม่')
-                            ->password()
-                            ->revealable()
-                            ->placeholder('เว้นว่างถ้าไม่ต้องการเปลี่ยน')
-                            ->dehydrated(fn ($state) => filled($state))
-                            ->dehydrateStateUsing(fn ($state) => Hash::make($state))
-                            ->rules([
-                                fn (Forms\Get $get): Closure =>
-                                    function (string $attribute, $value, Closure $fail) use ($get) {
-                                        if (! filled($value)) return;
-                                        if (mb_strlen($value) < 6) {
-                                            $fail('Password ต้องมีอย่างน้อย 6 ตัวอักษร');
-                                            return;
-                                        }
-                                        if ($value !== $get('password_confirmation')) {
-                                            $fail('Password ยืนยันไม่ตรงกัน');
-                                        }
-                                    },
-                            ]),
-                        Forms\Components\TextInput::make('password_confirmation')
-                            ->label('ยืนยัน Password')
-                            ->password()
-                            ->revealable()
-                            ->dehydrated(false),
-                    ])->columnSpan(1),
+                    Forms\Components\TextInput::make('password')
+                        ->label('Password')
+                        ->password()
+                        ->revealable()
+                        ->placeholder('เว้นว่างถ้าไม่ต้องการเปลี่ยน')
+                        ->dehydrated(fn ($state) => filled($state))
+                        ->dehydrateStateUsing(fn ($state) => Hash::make($state))
+                        ->rules([
+                            fn (): Closure =>
+                                function (string $attribute, $value, Closure $fail) {
+                                    if (filled($value) && mb_strlen($value) < 6) {
+                                        $fail('Password ต้องมีอย่างน้อย 6 ตัวอักษร');
+                                    }
+                                },
+                        ])
+                        ->columnSpan(1),
                 ]),
 
             Forms\Components\Section::make('ตัวละคร')
@@ -105,9 +95,9 @@ class UserResource extends Resource
                         ->label('ชื่อตัวละคร')
                         ->required()
                         ->maxLength(255),
-                    Forms\Components\Select::make('city_id')
-                        ->label('เมือง')
-                        ->options(fn () => City::orderBy('name')->pluck('name', 'id'))
+                    Forms\Components\Select::make('kingdom_id')
+                        ->label('อาณาจักร')
+                        ->options(fn () => Kingdom::orderBy('name')->pluck('name', 'id'))
                         ->required()
                         ->searchable(),
                     Forms\Components\Select::make('status')
@@ -164,10 +154,21 @@ class UserResource extends Resource
                         ->nullable()
                         ->inline()
                         ->columnSpanFull(),
+                ]),
 
-                    Forms\Components\Textarea::make('backstory')
-                        ->label('Backstory')
-                        ->columnSpanFull(),
+            Forms\Components\Section::make('การตอบพิธีเข้าสู่โลก (Onboarding)')
+                ->description('คำตอบทั้ง 3 บทที่ผู้เล่นกรอกไว้ — ใช้ประกอบการพิจารณาก่อนอนุมัติ')
+                ->collapsible()
+                ->schema([
+                    Forms\Components\Placeholder::make('onboarding_stage_1')
+                        ->label('บทที่ ๑ · ตัวตน')
+                        ->content(fn ($record) => self::onboardingStageContent($record, 1)),
+                    Forms\Components\Placeholder::make('onboarding_stage_2')
+                        ->label('บทที่ ๒ · เหตุ')
+                        ->content(fn ($record) => self::onboardingStageContent($record, 2)),
+                    Forms\Components\Placeholder::make('onboarding_stage_3')
+                        ->label('บทที่ ๓ · ปณิธาน')
+                        ->content(fn ($record) => self::onboardingStageContent($record, 3)),
                 ]),
 
             Forms\Components\Section::make('RPG Stats')
@@ -185,6 +186,22 @@ class UserResource extends Resource
                         ]),
                 ]),
         ]);
+    }
+
+    private static function onboardingStageContent($record, int $stage): HtmlString
+    {
+        $entry = $record?->character?->onboardingEntries?->firstWhere('stage', $stage);
+
+        if (! $entry) {
+            return new HtmlString('<span class="text-gray-500">ยังไม่ได้ตอบ</span>');
+        }
+
+        $submittedAt = $entry->submitted_at?->format('d M Y H:i');
+
+        return new HtmlString(
+            '<div class="whitespace-pre-line text-sm">'.e($entry->content).'</div>'
+            .($submittedAt ? '<div class="mt-1 text-xs text-gray-500">ส่งเมื่อ '.e($submittedAt).'</div>' : '')
+        );
     }
 
     public static function table(Table $table): Table

@@ -29,7 +29,7 @@ class ThreadTrash extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(Thread::onlyTrashed()->with(['creator', 'village.city']))
+            ->query(Thread::onlyTrashed()->with(['creator', 'city.kingdom']))
             ->columns([
                 Tables\Columns\TextColumn::make('title')
                     ->label('หัวข้อ')
@@ -37,8 +37,8 @@ class ThreadTrash extends Page implements HasTable
                     ->limit(50),
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('ผู้เขียน'),
-                Tables\Columns\TextColumn::make('village.name')
-                    ->label('หมู่บ้าน'),
+                Tables\Columns\TextColumn::make('city.name')
+                    ->label('เมือง'),
                 Tables\Columns\TextColumn::make('deleted_at')
                     ->label('ลบเมื่อ')
                     ->dateTime()
