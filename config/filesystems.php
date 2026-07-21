@@ -38,7 +38,23 @@ return [
             'report' => false,
         ],
 
-        'public' => [
+        // Application code (avatar uploads, World Chronicle cover images) always writes to
+        // the "public" disk by name. Locally that's the local disk served via `storage:link`;
+        // on Laravel Cloud (TIGRIS_BUCKET set) it transparently becomes the Tigris bucket, so
+        // uploads don't land on the container's local/ephemeral filesystem in production.
+        'public' => env('TIGRIS_BUCKET') ? [
+            'driver' => 's3',
+            'key' => env('TIGRIS_ACCESS_KEY_ID'),
+            'secret' => env('TIGRIS_SECRET_ACCESS_KEY'),
+            'region' => env('TIGRIS_REGION', 'auto'),
+            'bucket' => env('TIGRIS_BUCKET'),
+            'url' => env('TIGRIS_URL'),
+            'endpoint' => env('TIGRIS_ENDPOINT', 'https://fly.storage.tigris.dev'),
+            'use_path_style_endpoint' => false,
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ] : [
             'driver' => 'local',
             'root' => storage_path('app/public'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
