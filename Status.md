@@ -192,3 +192,20 @@ This meant removal was low-risk cleanup, not unwinding a live integration.
 
 ### Deploy plan impact
 `ANTHROPIC_API_KEY` is no longer part of the production secrets checklist — one less thing to configure/rotate/monitor cost on when setting up Laravel Cloud env vars.
+
+---
+
+## Update 2026-07-21 (fifth pass) — Phase 2 pre-deploy hardening: rate limiting + superadmin bootstrap
+
+Closed the last 2 open items from the original pre-deploy checklist (both were "missing features/hardening," not bugs).
+
+### Rate limiting on login/register
+`POST /login` and `POST /register` now carry `throttle:5,1` (5 attempts/minute, keyed by IP by default). Guards against brute-force login attempts and register-spam/bot signups. Simple inline numeric throttle — no named `RateLimiter::for()` needed since nothing else in the app uses one yet.
+
+### Superadmin bootstrap command
+New `php artisan user:make-superadmin {email}` (`app/Console/Commands/MakeSuperAdmin.php`) — promotes an already-registered user to `UserRole::SuperAdmin`. This was a real gap: there was previously no way to create the first admin-panel account on a fresh environment except a raw `tinker` one-liner. Handles 3 cases: unknown email (fails with exit code 1, tells the operator to register first), already-superadmin (no-op, success), normal promotion (success). New `tests/Feature/MakeSuperAdminCommandTest.php` covers all 3 paths via the isolated SQLite test DB — also manually verified against the dev MySQL DB (both the not-found and already-superadmin branches; didn't mutate a real player's role just to test the promotion branch, that's what the SQLite test covers).
+
+**Full suite now: 11/11 tests, 71 assertions, 0 failures.** `npm run build`: clean.
+
+### Deploy plan impact
+Both original Phase 2 items are now done — nothing missing/hardening-wise is known to be outstanding before a first deploy, beyond the operational step of actually running `php artisan user:make-superadmin <your-email>` once against production after the first real account registers.
