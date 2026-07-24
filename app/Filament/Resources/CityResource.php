@@ -36,6 +36,16 @@ class CityResource extends Resource
                 Forms\Components\Textarea::make('description')
                     ->label('รายละเอียด')
                     ->columnSpanFull(),
+                Forms\Components\FileUpload::make('banner_image')
+                    ->label('ภาพแบนเนอร์')
+                    ->image()
+                    ->disk('public')
+                    ->directory('cities')
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->imagePreviewHeight('220')
+                    ->maxSize(3072)
+                    ->helperText('รองรับ JPG, PNG, WEBP ขนาดไม่เกิน 3MB')
+                    ->columnSpanFull(),
             ])->columns(2),
 
             Forms\Components\Section::make('Zone Settings')->schema([

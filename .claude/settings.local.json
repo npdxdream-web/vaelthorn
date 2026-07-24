@@ -26,7 +26,8 @@
       "Bash(curl -s -c /tmp/vc.txt -b /tmp/vc.txt http://vaelthorn.test/admin/login)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" -c /tmp/vc.txt http://vaelthorn.test/admin/login)",
       "Bash(curl -s -c /tmp/mc3.txt http://vaelthorn.test/login)",
-      "PowerShell($env:PATH = \"C:\\\\laragon\\\\bin\\\\php\\\\php8.3.14;$env:PATH\"; cd c:\\\\laragon\\\\www\\\\vaelthorn; php artisan tinker --execute=\"echo \\\\App\\\\Models\\\\City::where\\('is_active', true\\)->first\\(\\)?->id . '|' . \\\\App\\\\Models\\\\City::where\\('is_active', true\\)->first\\(\\)?->name;\")"
+      "PowerShell($env:PATH = \"C:\\\\laragon\\\\bin\\\\php\\\\php8.3.14;$env:PATH\"; cd c:\\\\laragon\\\\www\\\\vaelthorn; php artisan tinker --execute=\"echo \\\\App\\\\Models\\\\City::where\\('is_active', true\\)->first\\(\\)?->id . '|' . \\\\App\\\\Models\\\\City::where\\('is_active', true\\)->first\\(\\)?->name;\")",
+      "PowerShell(& \"C:\\\\laragon\\\\bin\\\\php\\\\php-8.3.30-Win32-vs16-x64\\\\php.exe\" \"c:\\\\laragon\\\\www\\\\vaelthorn\\\\check_fks.php\")"
     ]
   }
 }

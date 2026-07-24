@@ -43,12 +43,34 @@
         .thread-reading .ql-indent-6 { padding-left:18em; }
         .thread-reading .ql-indent-7 { padding-left:21em; }
         .thread-reading .ql-indent-8 { padding-left:24em; }
+        .thread-reading .ql-rindent-1 { padding-right:3em; }
+        .thread-reading .ql-rindent-2 { padding-right:6em; }
+        .thread-reading .ql-rindent-3 { padding-right:9em; }
+        .thread-reading .ql-rindent-4 { padding-right:12em; }
+        .thread-reading .ql-rindent-5 { padding-right:15em; }
+        .thread-reading .ql-rindent-6 { padding-right:18em; }
+        .thread-reading .ql-rindent-7 { padding-right:21em; }
+        .thread-reading .ql-rindent-8 { padding-right:24em; }
         .thread-reading h1 { font-size:2em; }
         .thread-reading h2 { font-size:1.5em; }
         .thread-reading h3 { font-size:1.17em; }
         .thread-reading h4 { font-size:1em; }
         .thread-reading h5 { font-size:.83em; }
         .thread-reading h6 { font-size:.67em; }
+
+        /* ── Drop cap: user-applied via the "Drop Cap" toolbar button ───── */
+        .drop-cap {
+            float: left;
+            font-family: var(--font-decorative);
+            font-size: 38px;
+            line-height: 0.85;
+            color: #d4af37;
+            font-weight: 700;
+            padding: 6px 8px 0 0;
+        }
+        @media (max-width: 639px) {
+            .drop-cap { font-size: 32px; }
+        }
 
         /* ── Color picker ───────────────────────────────────────── */
         .color-picker-wrap { display:inline-flex; align-items:center; gap:.4rem; vertical-align:middle; }
@@ -133,6 +155,13 @@
                         <button class="ql-indent" value="+1" title="เพิ่มย่อหน้า (Tab)"></button>
                     </span>
                     <span class="ql-formats">
+                        <button class="ql-indentright" value="-1" title="ลดย่อหน้าทางขวา"><strong>⇤</strong></button>
+                        <button class="ql-indentright" value="+1" title="เพิ่มย่อหน้าทางขวา"><strong>⇥</strong></button>
+                    </span>
+                    <span class="ql-formats">
+                        <button class="ql-dropcap" type="button" title="Drop Cap — ตัวอักษรแรกของย่อหน้าตัวใหญ่"><strong>A</strong></button>
+                    </span>
+                    <span class="ql-formats">
                         <button class="ql-align" value="" title="ชิดซ้าย"></button>
                         <button class="ql-align" value="center" title="จัดกึ่งกลาง"></button>
                         <button class="ql-align" value="right" title="ชิดขวา"></button>
@@ -140,6 +169,7 @@
                     </span>
                     <span class="ql-formats">
                         <button class="ql-link" title="แทรกลิงก์"></button>
+                        <button class="ql-image" title="แทรกรูปภาพ"></button>
                     </span>
                     <span class="ql-formats">
                         <button class="ql-clean" title="ล้างการจัดรูปแบบ"></button>
@@ -321,13 +351,116 @@ function installIndentAnywhereBindings(quill) {
         .concat(quill.keyboard.bindings[TAB_KEY] || []);
 }
 
+// Drop cap is a plain toggleable inline format (like bold/italic), not an
+// automatic CSS ::first-letter rule — a post's first line is often itself a
+// heading/decorative divider, so "first rendered character" isn't reliably
+// the paragraph the author wants capitalized. The user picks the exact
+// paragraph by placing the cursor in it and clicking the button.
+function registerDropCapFormat() {
+    var InlineBlot = Quill.import('blots/inline');
+    class DropCap extends InlineBlot {
+        static formats() { return true; }
+    }
+    DropCap.blotName = 'dropcap';
+    DropCap.tagName = 'span';
+    DropCap.className = 'drop-cap';
+    Quill.register(DropCap, true);
+}
+
+// Always targets the current paragraph's first non-whitespace character,
+// regardless of where the cursor is within that paragraph — not a Tab/marker
+// based mechanism, just "wherever the cursor is, capitalize that paragraph".
+function dropCapToolbarHandler() {
+    var range = this.quill.getSelection();
+    if (!range) return;
+    var lineInfo = this.quill.getLine(range.index);
+    var line = lineInfo[0];
+    var offset = lineInfo[1];
+    if (!line) return;
+    var lineStart = range.index - offset;
+    var lineText = this.quill.getText(lineStart, line.length());
+    var match = lineText.match(/\S/);
+    if (!match) return;
+    var charIndex = lineStart + match.index;
+    var isActive = !!this.quill.getFormat(charIndex, 1).dropcap;
+    this.quill.formatText(charIndex, 1, 'dropcap', !isActive, Quill.sources.USER);
+}
+
+// Quill Snow theme's default link/image UI is a floating tooltip positioned
+// via raw getBoundingClientRect() math, which desyncs under this site's
+// sitewide `zoom: 0.9` (vaelthorn-theme.css) — the tooltip opens off-screen
+// (confirmed: negative left offset), so users can't see it at all. Plain
+// window.prompt() is a native browser dialog, unaffected by CSS zoom.
+function linkToolbarHandler() {
+    var range = this.quill.getSelection();
+    if (!range) return;
+    if (this.quill.getFormat(range).link) {
+        this.quill.format('link', false, Quill.sources.USER);
+        return;
+    }
+    if (range.length === 0) return;
+    var url = window.prompt('ใส่ URL ลิงก์:');
+    if (!url) return;
+    this.quill.format('link', url, Quill.sources.USER);
+}
+
+function imageToolbarHandler() {
+    var range = this.quill.getSelection(true);
+    var url = window.prompt('ใส่ URL รูปภาพ:');
+    if (!url) return;
+    this.quill.insertEmbed(range ? range.index : this.quill.getLength(), 'image', url, Quill.sources.USER);
+}
+
+// Right-indent mirrors Quill's own built-in left `indent` format exactly — a
+// block-scoped class Attributor (not a Blot), so the toolbar buttons need no
+// custom handler at all: Quill's toolbar already calls quill.format(name, value)
+// automatically for any registered non-Embed format with no handler, same as
+// the existing left indent/outdent buttons.
+function registerIndentRightFormat() {
+    var Parchment = Quill.import('parchment');
+    class IndentRightAttributor extends Parchment.Attributor.Class {
+        add(node, value) {
+            if (value === '+1' || value === '-1') {
+                var current = this.value(node) || 0;
+                value = value === '+1' ? current + 1 : current - 1;
+            }
+            if (value === 0) {
+                this.remove(node);
+                return true;
+            }
+            return super.add(node, value);
+        }
+        canAdd(node, value) {
+            // Class-derived values read back as strings ("3"), but the
+            // whitelist is numeric ([1..8]) — mirrors Quill's own built-in
+            // indent Attributor, which needs the exact same fallback.
+            return super.canAdd(node, value) || super.canAdd(node, parseInt(value));
+        }
+        value(node) {
+            return parseInt(super.value(node)) || undefined;
+        }
+    }
+    var IndentRight = new IndentRightAttributor('indentright', 'ql-rindent', {
+        scope: Parchment.Scope.BLOCK,
+        whitelist: [1, 2, 3, 4, 5, 6, 7, 8],
+    });
+    Quill.register({ 'formats/indentright': IndentRight }, true);
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const Font = Quill.import('formats/font');
     Font.whitelist = ['sarabun','prompt','kanit','noto-serif-thai','mitr','charm','trirong','monospace'];
     Quill.register(Font, true);
+    registerDropCapFormat();
+    registerIndentRightFormat();
 
     const quill = new Quill('#post-editor', {
-        modules: { toolbar: '#post-editor-toolbar' },
+        modules: {
+            toolbar: {
+                container: '#post-editor-toolbar',
+                handlers: { dropcap: dropCapToolbarHandler, link: linkToolbarHandler, image: imageToolbarHandler },
+            },
+        },
         theme: 'snow',
     });
     installIndentAnywhereBindings(quill);

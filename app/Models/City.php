@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class City extends Model
 {
@@ -11,6 +12,7 @@ class City extends Model
         'kingdom_id',
         'name',
         'description',
+        'banner_image',
         'is_training_zone',
         'write_min_level',
         'write_min_role',
@@ -60,6 +62,11 @@ class City extends Model
         }
 
         return true;
+    }
+
+    public function getBannerImageUrlAttribute(): ?string
+    {
+        return $this->banner_image ? Storage::disk('public')->url($this->banner_image) : null;
     }
 
     public function kingdom()

@@ -45,12 +45,13 @@ class ThreadController extends Controller
             'character.currentKingdom',
             'character.stats',
             'character.badges',
+            'character.user',
         ];
 
         if ($user->isAtLeastModerator()) {
             $posts = Post::where('thread_id', $thread->id)
-                ->with([...$characterEager, 'character.user'])
-                ->oldest()->get();
+                ->with($characterEager)
+                ->oldest()->oldest('id')->get();
         } elseif ($currentCharacter) {
             $posts = Post::where('thread_id', $thread->id)
                 ->where(function ($q) use ($currentCharacter) {
@@ -58,12 +59,12 @@ class ThreadController extends Controller
                       ->orWhere('character_id', $currentCharacter->id);
                 })
                 ->with($characterEager)
-                ->oldest()->get();
+                ->oldest()->oldest('id')->get();
         } else {
             $posts = Post::where('thread_id', $thread->id)
                 ->where('status', 'approved')
                 ->with($characterEager)
-                ->oldest()->get();
+                ->oldest()->oldest('id')->get();
         }
 
         $participants = $posts->where('status', 'approved')->pluck('character')->unique('id')->filter()->values();

@@ -62,6 +62,14 @@
         .thread-reading .ql-indent-6 { padding-left:18em; }
         .thread-reading .ql-indent-7 { padding-left:21em; }
         .thread-reading .ql-indent-8 { padding-left:24em; }
+        .thread-reading .ql-rindent-1 { padding-right:3em; }
+        .thread-reading .ql-rindent-2 { padding-right:6em; }
+        .thread-reading .ql-rindent-3 { padding-right:9em; }
+        .thread-reading .ql-rindent-4 { padding-right:12em; }
+        .thread-reading .ql-rindent-5 { padding-right:15em; }
+        .thread-reading .ql-rindent-6 { padding-right:18em; }
+        .thread-reading .ql-rindent-7 { padding-right:21em; }
+        .thread-reading .ql-rindent-8 { padding-right:24em; }
         .thread-reading h1 { font-size:2em; }
         .thread-reading h2 { font-size:1.5em; }
         .thread-reading h3 { font-size:1.17em; }
@@ -94,10 +102,6 @@
         .thread-post-card {
             border-radius: 0 !important;
         }
-        .thread-panel h1 {
-            font-size: clamp(1.8rem, 1.95vw, 2.7rem) !important;
-            text-shadow: 0 0 28px rgba(200, 168, 75, 0.28);
-        }
         .thread-reading {
             font-size: 1.35rem !important;
             line-height: 1.9 !important;
@@ -120,6 +124,100 @@
             .public-shell > .grid > aside {
                 display: none !important;
             }
+        }
+
+        /* ── Compact thread header: always the same shape, banner or not ── */
+        .thread-header-compact__breadcrumb {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-display);
+            font-size: 0.6rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: #746a5a;
+            text-decoration: none;
+            margin-bottom: 10px;
+        }
+        .thread-header-compact__breadcrumb:hover {
+            color: #d4af37;
+        }
+        .thread-header-compact__title {
+            font-family: var(--font-decorative);
+            font-size: 19px;
+            font-weight: 700;
+            color: #d4af37;
+            line-height: 1.25;
+            margin: 0 0 6px;
+        }
+        .thread-header-compact__meta {
+            font-family: var(--font-display);
+            font-size: 0.7rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #6b5f45;
+        }
+        /* Hairline under the header meta line */
+        .thread-header-hairline {
+            height: 1px;
+            background: #2a2620;
+            margin-top: 16px;
+        }
+
+        /* ── Plain decorative hero strip (shown only when city.banner_image is set) ── */
+        .thread-hero-strip {
+            position: relative;
+            height: 130px;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+            background-color: #141210;
+        }
+        .thread-hero-strip__fade {
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 45%;
+            background: linear-gradient(to bottom, transparent 0%, rgba(10,9,7,0.95) 100%);
+        }
+        @media (max-width: 639px) {
+            .thread-header-compact__title { font-size: 17px; }
+            .thread-hero-strip { height: 95px; }
+        }
+
+        /* ── Lore post: opening manuscript-style post by an admin ───────── */
+        .lore-post {
+            padding: 8px 4px 4px;
+        }
+        .lore-post-body.thread-reading {
+            font-family: var(--font-chronicle);
+            font-size: 14px !important;
+            line-height: 2 !important;
+            color: #d8d1bd;
+        }
+        .lore-post-body p {
+            margin-bottom: 1.4em;
+        }
+        .lore-post-hr {
+            height: 1px;
+            background: #2a2620;
+            margin-top: 28px;
+        }
+        @media (max-width: 639px) {
+            .lore-post-body.thread-reading { font-size: 13px !important; }
+        }
+
+        /* ── Drop cap: user-applied via the "Drop Cap" toolbar button ───── */
+        .drop-cap {
+            float: left;
+            font-family: var(--font-decorative);
+            font-size: 38px;
+            line-height: 0.85;
+            color: #d4af37;
+            font-weight: 700;
+            padding: 6px 8px 0 0;
+        }
+        @media (max-width: 639px) {
+            .drop-cap { font-size: 32px; }
         }
     </style>
 @endpush
@@ -246,73 +344,52 @@
 
         {{-- ── Main column ──────────────────────────────────────────────────── --}}
 
-            {{-- Back link + title --}}
-            <div class="thread-panel corner-ornaments mb-6 px-7 py-6">
-                <a href="{{ route('city', $thread->city->id) }}"
-                   class="mb-5 inline-flex items-center gap-2 font-display text-[0.6rem] uppercase tracking-[0.2em] text-text-subtle hover:text-gold">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {{-- Back link + title: single compact header, always the same shape --}}
+            @php
+                $locationText = $thread->location_label ?? $thread->city?->kingdom?->name;
+            @endphp
+            <div class="thread-header-compact mb-6">
+                <a href="{{ route('city', $thread->city->id) }}" class="thread-header-compact__breadcrumb">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                     </svg>
                     Back to {{ $thread->city->name }}
                 </a>
-
-                <div class="gold-divider mb-5"></div>
-
-                <div class="mb-3">
-                    <h1 class="font-decorative text-[1.35rem] font-bold leading-tight text-gold sm:text-2xl">{{ $thread->title }}</h1>
+                <h1 class="thread-header-compact__title">{{ $thread->title }}</h1>
+                <div class="thread-header-compact__meta">
+                    {{ $thread->isLive() ? 'LIVE' : 'CLOSED' }}
+                    @if($locationText) &middot; {{ $locationText }} @endif
+                    &middot; {{ $thread->approvedPostsCount() }} posts
                 </div>
-
-                <div class="flex flex-wrap items-center gap-4">
-                    {{-- Live / Closed dot badge --}}
-                    @if($thread->isLive())
-                        <span style="display:inline-flex; align-items:center; gap:5px; font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#2d7a3a; border:0.5px solid #2d7a3a55; padding:3px 10px;">
-                            <span style="width:6px; height:6px; border-radius:50%; background:#2d7a3a; display:inline-block; flex-shrink:0;"></span>
-                            LIVE
-                        </span>
-                    @else
-                        <span style="display:inline-flex; align-items:center; gap:5px; font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#8B2020; border:0.5px solid #8B202055; padding:3px 10px;">
-                            <span style="width:6px; height:6px; border-radius:50%; background:#8B2020; display:inline-block; flex-shrink:0;"></span>
-                            CLOSED
-                        </span>
-                    @endif
-
-                    {{-- Location --}}
-                    @php $locationText = $thread->location_label ?? $thread->city?->kingdom?->name; @endphp
-                    @if($locationText)
-                        <span style="font-family:'Crimson Text',serif; font-size:13px; color:#6b5f45; display:inline-flex; align-items:center; gap:4px;">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6b5f45" stroke-width="1.5"><circle cx="12" cy="10" r="3"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
-                            {{ $locationText }}
-                        </span>
-                    @endif
-
-                    {{-- Approved post count --}}
-                    <span style="font-family:'Crimson Text',serif; font-size:13px; color:#4a4030; display:inline-flex; align-items:center; gap:4px;">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4a4030" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                        {{ $thread->approvedPostsCount() }} posts
-                    </span>
-                </div>
-
-                {{-- Owner actions: edit (pending/draft/request_edit) + delete (draft only) --}}
-                @if(auth()->id() === $thread->created_by && in_array($thread->status, ['pending','draft','request_edit']))
-                    <div class="mt-3 flex items-center gap-2">
-                        <a href="{{ route('thread.edit', $thread->id) }}"
-                           class="inline-flex items-center gap-2 rounded-lg border border-amber-400/40 bg-amber-950/20 px-4 py-2 text-sm text-amber-300 hover:bg-amber-950/40">
-                            ✏️ แก้ไขกระทู้
-                        </a>
-
-                        @if($thread->status === 'draft')
-                        <form method="POST" action="{{ route('thread.destroy', $thread->id) }}"
-                              onsubmit="return confirm('ลบกระทู้ร่างนี้ถาวรหรือไม่?\n\nกระทู้จะถูกย้ายไปถังขยะและลบหลัง 3 วัน')">
-                            @csrf @method('DELETE')
-                            <button type="submit"
-                                    class="inline-flex items-center gap-2 rounded-lg border border-rose-400/30 bg-rose-950/10 px-4 py-2 text-sm text-rose-400 hover:bg-rose-950/30">
-                                🗑 ลบร่าง
-                            </button>
-                        </form>
-                        @endif
-                    </div>
-                @endif
+                <div class="thread-header-hairline"></div>
             </div>
+
+            @if($thread->city->banner_image)
+                <div class="thread-hero-strip mb-6" style="background-image:url('{{ $thread->city->banner_image_url }}');">
+                    <div class="thread-hero-strip__fade"></div>
+                </div>
+            @endif
+
+            {{-- Owner actions: edit (pending/draft/request_edit) + delete (draft only) --}}
+            @if(auth()->id() === $thread->created_by && in_array($thread->status, ['pending','draft','request_edit']))
+                <div class="mb-6 flex items-center gap-2">
+                    <a href="{{ route('thread.edit', $thread->id) }}"
+                       class="inline-flex items-center gap-2 rounded-lg border border-amber-400/40 bg-amber-950/20 px-4 py-2 text-sm text-amber-300 hover:bg-amber-950/40">
+                        ✏️ แก้ไขกระทู้
+                    </a>
+
+                    @if($thread->status === 'draft')
+                    <form method="POST" action="{{ route('thread.destroy', $thread->id) }}"
+                          onsubmit="return confirm('ลบกระทู้ร่างนี้ถาวรหรือไม่?\n\nกระทู้จะถูกย้ายไปถังขยะและลบหลัง 3 วัน')">
+                        @csrf @method('DELETE')
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 rounded-lg border border-rose-400/30 bg-rose-950/10 px-4 py-2 text-sm text-rose-400 hover:bg-rose-950/30">
+                            🗑 ลบร่าง
+                        </button>
+                    </form>
+                    @endif
+                </div>
+            @endif
 
             {{-- Flash messages --}}
             @if(session('success'))
@@ -503,8 +580,83 @@
                                          ?? strtolower($postCharacter?->auto_rank ?? 'stranger');
                         $portraitW     = 240;
                         $portraitH     = 450;
+                        $isLorePost    = $loop->first && optional($postCharacter?->user)->isAtLeastAdmin();
                     @endphp
 
+                    @if($isLorePost)
+                        <div class="lore-post">
+                            <div class="lore-post-body thread-reading prose prose-invert max-w-none">
+                                {!! $post->content !!}
+                            </div>
+
+                            {{-- Witness System --}}
+                            @if($post->status === 'approved' && $currentCharacter && $currentCharacter->id !== $post->character_id)
+                            <div style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 0; clear:both;">
+                                @foreach([
+                                    'witness'  => ['👁', 'Witness',  '#c8a84b'],
+                                    'inspired' => ['✦', 'Inspired', '#7ab0d4'],
+                                    'moved'    => ['♡', 'Moved',    '#c05080'],
+                                ] as $type => [$icon, $label, $color])
+                                    @php
+                                        $count    = $post->reactions()->where('type', $type)->count();
+                                        $reacted  = $post->hasReactionFrom($currentCharacter->id, $type);
+                                    @endphp
+                                    <form method="POST" action="{{ route('post.react', $post->id) }}" style="display:inline;">
+                                        @csrf
+                                        <input type="hidden" name="type" value="{{ $type }}">
+                                        <button type="submit" style="
+                                            display:inline-flex; align-items:center; gap:5px;
+                                            font-family:var(--font-display); font-size:10px; letter-spacing:1.5px;
+                                            border:0.5px solid {{ $reacted ? $color.'88' : '#c8a84b22' }};
+                                            background:{{ $reacted ? $color.'15' : 'transparent' }};
+                                            color:{{ $reacted ? $color : '#6b6050' }};
+                                            padding:4px 10px; cursor:pointer; transition:.15s ease;
+                                        ">
+                                            <span>{{ $icon }}</span>
+                                            <span>{{ strtoupper($label) }}</span>
+                                            @if($count > 0)<span style="color:{{ $color }}; opacity:.8">{{ $count }}</span>@endif
+                                        </button>
+                                    </form>
+                                @endforeach
+                            </div>
+                            @endif
+
+                            {{-- Status badge + council actions --}}
+                            <div style="display:flex; align-items:center; justify-content:center; gap:10px; padding:8px 0; clear:both;">
+                                @if($post->status === 'approved')
+                                    <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#2d7a3a; border:0.5px solid #2d7a3a44; padding:3px 10px;">APPROVED</span>
+                                @elseif($post->status === 'pending')
+                                    <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#c8a84b; border:0.5px solid #c8a84b44; padding:3px 10px;">● PENDING</span>
+                                @else
+                                    <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#8B2020; border:0.5px solid #8B202044; padding:3px 10px;">{{ strtoupper($post->status) }}</span>
+                                @endif
+
+                                @if($isAdmin || ($isPostOwner && $isPending))
+                                    @if($isAdmin)
+                                    <span style="font-family:var(--font-display); font-size:8px; letter-spacing:2px; color:#3a3020;">COUNCIL</span>
+                                    @endif
+
+                                    @if($isAdmin && $isPending)
+                                    <form method="POST" action="{{ route('post.approve', $post->id) }}" style="display:inline;">
+                                        @csrf
+                                        <button type="submit" style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:#2d7a3a; border:0.5px solid #2d7a3a55; background:transparent; padding:4px 11px; cursor:pointer;">✓ APPROVE</button>
+                                    </form>
+                                    @endif
+
+                                    <a href="{{ route('post.edit', $post->id) }}"
+                                       style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:#c8a84b; border:0.5px solid #c8a84b33; background:transparent; padding:4px 11px; text-decoration:none; display:inline-block;">✎ EDIT</a>
+
+                                    <form method="POST" action="{{ route('post.destroy', $post->id) }}" style="display:inline;"
+                                          onsubmit="return confirm('ลบโพสต์นี้?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:#6b3030; border:0.5px solid #6b303044; background:transparent; padding:4px 11px; cursor:pointer;">✕ DELETE</button>
+                                    </form>
+                                @endif
+                            </div>
+
+                            <div class="lore-post-hr"></div>
+                        </div>
+                    @else
                     <div class="thread-post-card {{ $isPending ? 'post-pending' : '' }}">
                         <div class="thread-post-grid">
                             <aside class="thread-author-panel p-4 xl:p-5">
@@ -695,6 +847,7 @@
                             </article>
                         </div>
                     </div>
+                    @endif
                 @empty
                     <div class="archive-panel-soft p-12 text-center text-text-subtle">
                         ยังไม่มีโพสต์ในกระทู้นี้
@@ -842,6 +995,15 @@
                             <span class="ql-formats">
                                 <button class="ql-indent" value="-1" title="ลดย่อหน้า"></button>
                                 <button class="ql-indent" value="+1" title="เพิ่มย่อหน้า (Tab)"></button>
+                            </span>
+                            {{-- Indent right --}}
+                            <span class="ql-formats">
+                                <button class="ql-indentright" value="-1" title="ลดย่อหน้าทางขวา"><strong>⇤</strong></button>
+                                <button class="ql-indentright" value="+1" title="เพิ่มย่อหน้าทางขวา"><strong>⇥</strong></button>
+                            </span>
+                            {{-- Drop cap --}}
+                            <span class="ql-formats">
+                                <button class="ql-dropcap" type="button" title="Drop Cap — ตัวอักษรแรกของย่อหน้าตัวใหญ่"><strong>A</strong></button>
                             </span>
                             {{-- Alignment --}}
                             <span class="ql-formats">
@@ -1220,13 +1382,116 @@ function installIndentAnywhereBindings(quill) {
         .concat(quill.keyboard.bindings[TAB_KEY] || []);
 }
 
+// Drop cap is a plain toggleable inline format (like bold/italic), not an
+// automatic CSS ::first-letter rule — a post's first line is often itself a
+// heading/decorative divider, so "first rendered character" isn't reliably
+// the paragraph the author wants capitalized. The user picks the exact
+// paragraph by placing the cursor in it and clicking the button.
+function registerDropCapFormat() {
+    var InlineBlot = Quill.import('blots/inline');
+    class DropCap extends InlineBlot {
+        static formats() { return true; }
+    }
+    DropCap.blotName = 'dropcap';
+    DropCap.tagName = 'span';
+    DropCap.className = 'drop-cap';
+    Quill.register(DropCap, true);
+}
+
+// Always targets the current paragraph's first non-whitespace character,
+// regardless of where the cursor is within that paragraph — not a Tab/marker
+// based mechanism, just "wherever the cursor is, capitalize that paragraph".
+function dropCapToolbarHandler() {
+    var range = this.quill.getSelection();
+    if (!range) return;
+    var lineInfo = this.quill.getLine(range.index);
+    var line = lineInfo[0];
+    var offset = lineInfo[1];
+    if (!line) return;
+    var lineStart = range.index - offset;
+    var lineText = this.quill.getText(lineStart, line.length());
+    var match = lineText.match(/\S/);
+    if (!match) return;
+    var charIndex = lineStart + match.index;
+    var isActive = !!this.quill.getFormat(charIndex, 1).dropcap;
+    this.quill.formatText(charIndex, 1, 'dropcap', !isActive, Quill.sources.USER);
+}
+
+// Quill Snow theme's default link/image UI is a floating tooltip positioned
+// via raw getBoundingClientRect() math, which desyncs under this site's
+// sitewide `zoom: 0.9` (vaelthorn-theme.css) — the tooltip opens off-screen
+// (confirmed: negative left offset), so users can't see it at all. Plain
+// window.prompt() is a native browser dialog, unaffected by CSS zoom.
+function linkToolbarHandler() {
+    var range = this.quill.getSelection();
+    if (!range) return;
+    if (this.quill.getFormat(range).link) {
+        this.quill.format('link', false, Quill.sources.USER);
+        return;
+    }
+    if (range.length === 0) return;
+    var url = window.prompt('ใส่ URL ลิงก์:');
+    if (!url) return;
+    this.quill.format('link', url, Quill.sources.USER);
+}
+
+function imageToolbarHandler() {
+    var range = this.quill.getSelection(true);
+    var url = window.prompt('ใส่ URL รูปภาพ:');
+    if (!url) return;
+    this.quill.insertEmbed(range ? range.index : this.quill.getLength(), 'image', url, Quill.sources.USER);
+}
+
+// Right-indent mirrors Quill's own built-in left `indent` format exactly — a
+// block-scoped class Attributor (not a Blot), so the toolbar buttons need no
+// custom handler at all: Quill's toolbar already calls quill.format(name, value)
+// automatically for any registered non-Embed format with no handler, same as
+// the existing left indent/outdent buttons.
+function registerIndentRightFormat() {
+    var Parchment = Quill.import('parchment');
+    class IndentRightAttributor extends Parchment.Attributor.Class {
+        add(node, value) {
+            if (value === '+1' || value === '-1') {
+                var current = this.value(node) || 0;
+                value = value === '+1' ? current + 1 : current - 1;
+            }
+            if (value === 0) {
+                this.remove(node);
+                return true;
+            }
+            return super.add(node, value);
+        }
+        canAdd(node, value) {
+            // Class-derived values read back as strings ("3"), but the
+            // whitelist is numeric ([1..8]) — mirrors Quill's own built-in
+            // indent Attributor, which needs the exact same fallback.
+            return super.canAdd(node, value) || super.canAdd(node, parseInt(value));
+        }
+        value(node) {
+            return parseInt(super.value(node)) || undefined;
+        }
+    }
+    var IndentRight = new IndentRightAttributor('indentright', 'ql-rindent', {
+        scope: Parchment.Scope.BLOCK,
+        whitelist: [1, 2, 3, 4, 5, 6, 7, 8],
+    });
+    Quill.register({ 'formats/indentright': IndentRight }, true);
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const Font = Quill.import('formats/font');
     Font.whitelist = ['sarabun','prompt','kanit','noto-serif-thai','mitr','charm','trirong','monospace'];
     Quill.register(Font, true);
+    registerDropCapFormat();
+    registerIndentRightFormat();
 
     const quill = new Quill('#thread-editor', {
-        modules: { toolbar: '#thread-editor-toolbar' },
+        modules: {
+            toolbar: {
+                container: '#thread-editor-toolbar',
+                handlers: { dropcap: dropCapToolbarHandler, link: linkToolbarHandler, image: imageToolbarHandler },
+            },
+        },
         theme: 'snow',
         placeholder: 'เขียนโพสต์ของคุณที่นี่…',
     });
