@@ -28,6 +28,28 @@
         .ql-font-charm          { font-family:'Charm',cursive; }
         .ql-font-trirong        { font-family:'Trirong',Georgia,serif; }
         .ql-font-monospace      { font-family:SFMono-Regular,Consolas,monospace; }
+
+        /* ── Preview pane: mirrors thread.blade.php's .thread-reading
+               overrides so Quill's .ql-editor-scoped align/indent/heading
+               rules (which the preview div doesn't carry) still apply. ── */
+        .thread-reading .ql-align-center  { text-align:center; }
+        .thread-reading .ql-align-right   { text-align:right; }
+        .thread-reading .ql-align-justify { text-align:justify; }
+        .thread-reading .ql-indent-1 { padding-left:3em; }
+        .thread-reading .ql-indent-2 { padding-left:6em; }
+        .thread-reading .ql-indent-3 { padding-left:9em; }
+        .thread-reading .ql-indent-4 { padding-left:12em; }
+        .thread-reading .ql-indent-5 { padding-left:15em; }
+        .thread-reading .ql-indent-6 { padding-left:18em; }
+        .thread-reading .ql-indent-7 { padding-left:21em; }
+        .thread-reading .ql-indent-8 { padding-left:24em; }
+        .thread-reading h1 { font-size:2em; }
+        .thread-reading h2 { font-size:1.5em; }
+        .thread-reading h3 { font-size:1.17em; }
+        .thread-reading h4 { font-size:1em; }
+        .thread-reading h5 { font-size:.83em; }
+        .thread-reading h6 { font-size:.67em; }
+
         /* ── Color picker ───────────────────────────────────────── */
         .color-picker-wrap { display:inline-flex; align-items:center; gap:.4rem; vertical-align:middle; }
         .color-hue-slider { -webkit-appearance:none; appearance:none; width:100px; height:10px; border-radius:5px; cursor:pointer; border:1px solid #333; background:linear-gradient(to right,#ff0000,#ff8000,#ffff00,#80ff00,#00ff00,#00ff80,#00ffff,#0080ff,#0000ff,#8000ff,#ff00ff,#ff0080,#ff0000); }
@@ -107,6 +129,10 @@
                         <button class="ql-list" value="bullet" title="รายการจุด"></button>
                     </span>
                     <span class="ql-formats">
+                        <button class="ql-indent" value="-1" title="ลดย่อหน้า"></button>
+                        <button class="ql-indent" value="+1" title="เพิ่มย่อหน้า (Tab)"></button>
+                    </span>
+                    <span class="ql-formats">
                         <button class="ql-align" value="" title="ชิดซ้าย"></button>
                         <button class="ql-align" value="center" title="จัดกึ่งกลาง"></button>
                         <button class="ql-align" value="right" title="ชิดขวา"></button>
@@ -127,6 +153,7 @@
                     </span>
                 </div>
                 <div id="post-editor" class="min-h-[220px] p-4 text-[#e8e6e3]"></div>
+                <div id="post-preview" class="thread-reading prose prose-invert max-w-none hidden p-4"></div>
 
                 @error('content')
                     <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
@@ -138,10 +165,16 @@
                    class="rounded-lg border border-[#2a2a2a] px-4 py-2 text-sm text-text-muted hover:border-[#D4AF37] hover:text-text">
                     ยกเลิก
                 </a>
-                <button type="submit"
-                        class="rounded-lg bg-[#D4AF37] px-5 py-2 text-sm font-medium text-[#0f0f0f] hover:bg-[#B8941F]">
-                    บันทึกการแก้ไข
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="post-preview-toggle"
+                            class="rounded-lg border border-gold/30 px-4 py-2 text-sm text-gold/80 hover:border-gold hover:text-gold">
+                        👁 ดูตัวอย่าง
+                    </button>
+                    <button type="submit"
+                            class="rounded-lg bg-[#D4AF37] px-5 py-2 text-sm font-medium text-[#0f0f0f] hover:bg-[#B8941F]">
+                        บันทึกการแก้ไข
+                    </button>
+                </div>
             </div>
         </form>
     </div>
@@ -202,6 +235,92 @@ function initColorPicker(sliderId, hexId, previewId, quill) {
     });
 }
 
+// Quill's block-level 'indent' format shifts every wrapped line of the
+// paragraph, not just the first — wrong for a Thai-style first-line
+// paragraph indent (ย่อหน้า). So Tab here inserts literal non-breaking
+// spaces at the cursor instead of applying a block format: it only ever
+// affects the first line, and needs no matching display CSS since it's
+// plain text content.
+// NBSP is built via fromCharCode (not a literal character in source) so
+// this file stays plain ASCII and never risks a mangled encoding.
+// Text-before-cursor is read via quill.getText(lineStart, offset) rather
+// than context.prefix: Quill's prefix is sliced from the leaf at the
+// cursor's index, and at the very start of a line that index is
+// ambiguous with the end of the *previous* line's leaf — so prefix can
+// come back as the previous paragraph's trailing text instead of "".
+// Bails (returns true) when the cursor is inside a list/blockquote/
+// code-block, since Tab there should keep doing Quill's own format
+// indent (nesting), not insert NBSP text.
+function quillIndentAnywhereBindings() {
+    var NBSP_CODE = 160;
+    var INDENT_UNIT = String.fromCharCode(NBSP_CODE, NBSP_CODE, NBSP_CODE, NBSP_CODE);
+    function isNbspOnly(str) {
+        for (var i = 0; i < str.length; i++) {
+            if (str.charCodeAt(i) !== NBSP_CODE) return false;
+        }
+        return true;
+    }
+    function isStructuredFormat(format) {
+        return !!(format && (format.list || format.blockquote || format.indent || format['code-block']));
+    }
+    return {
+        'indent-anywhere': {
+            key: 9,
+            shiftKey: false,
+            collapsed: true,
+            handler: function (range, context) {
+                if (isStructuredFormat(context.format)) return true;
+                var lineText = this.quill.getText(range.index - context.offset, context.offset);
+                if (!isNbspOnly(lineText)) return true;
+                this.quill.insertText(range.index, INDENT_UNIT, Quill.sources.USER);
+                this.quill.setSelection(range.index + INDENT_UNIT.length, Quill.sources.SILENT);
+                return false;
+            },
+        },
+        'outdent-anywhere': {
+            key: 9,
+            shiftKey: true,
+            collapsed: true,
+            handler: function (range, context) {
+                if (isStructuredFormat(context.format)) return true;
+                var lineStart = range.index - context.offset;
+                if (context.offset > 0) {
+                    var beforeCursor = this.quill.getText(lineStart, context.offset);
+                    if (!isNbspOnly(beforeCursor)) return true;
+                    var removeLen = Math.min(INDENT_UNIT.length, beforeCursor.length);
+                    this.quill.deleteText(range.index - removeLen, removeLen, Quill.sources.USER);
+                    this.quill.setSelection(range.index - removeLen, Quill.sources.SILENT);
+                    return false;
+                }
+                // Cursor at the true start of the line (e.g. after Home) — text
+                // "before cursor" is empty by definition, so look at the line's
+                // own leading run of NBSP instead.
+                var leading = this.quill.getText(lineStart, INDENT_UNIT.length);
+                var leadingCount = 0;
+                while (leadingCount < leading.length && leading.charCodeAt(leadingCount) === NBSP_CODE) leadingCount++;
+                if (leadingCount === 0) return true;
+                this.quill.deleteText(lineStart, leadingCount, Quill.sources.USER);
+                this.quill.setSelection(lineStart, Quill.sources.SILENT);
+                return false;
+            },
+        },
+    };
+}
+
+// Quill 1.3.7 registers several of its own Tab bindings (list/blockquote
+// indent, code-block indent, a generic unconditional fallback) ahead of
+// anything passed via `modules.keyboard.bindings` in the constructor —
+// bindings always run first-match-wins in registration order, so our
+// handlers above would never even be reached if added the normal way.
+// Prepending them directly onto quill.keyboard.bindings[9] after
+// construction makes them run first instead.
+function installIndentAnywhereBindings(quill) {
+    var TAB_KEY = 9;
+    var ours = quillIndentAnywhereBindings();
+    quill.keyboard.bindings[TAB_KEY] = [ours['indent-anywhere'], ours['outdent-anywhere']]
+        .concat(quill.keyboard.bindings[TAB_KEY] || []);
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const Font = Quill.import('formats/font');
     Font.whitelist = ['sarabun','prompt','kanit','noto-serif-thai','mitr','charm','trirong','monospace'];
@@ -211,6 +330,7 @@ document.addEventListener('DOMContentLoaded', function () {
         modules: { toolbar: '#post-editor-toolbar' },
         theme: 'snow',
     });
+    installIndentAnywhereBindings(quill);
 
     const contentInput = document.getElementById('post-content-input');
     const form         = document.getElementById('edit-post-form');
@@ -225,6 +345,29 @@ document.addEventListener('DOMContentLoaded', function () {
     form.addEventListener('submit', function () {
         contentInput.value = quill.root.innerHTML;
     });
+
+    // ── Preview toggle: show the post exactly as it will render on the thread ──
+    const previewToggle = document.getElementById('post-preview-toggle');
+    const previewPane    = document.getElementById('post-preview');
+    const toolbarEl       = document.getElementById('post-editor-toolbar');
+    const editorEl         = document.getElementById('post-editor');
+    if (previewToggle && previewPane) {
+        previewToggle.addEventListener('click', function () {
+            const showingPreview = !previewPane.classList.contains('hidden');
+            if (showingPreview) {
+                previewPane.classList.add('hidden');
+                toolbarEl.classList.remove('hidden');
+                editorEl.classList.remove('hidden');
+                previewToggle.textContent = '👁 ดูตัวอย่าง';
+            } else {
+                previewPane.innerHTML = quill.root.innerHTML;
+                previewPane.classList.remove('hidden');
+                toolbarEl.classList.add('hidden');
+                editorEl.classList.add('hidden');
+                previewToggle.textContent = '✎ กลับไปแก้ไข';
+            }
+        });
+    }
 });
 </script>
 @endpush
