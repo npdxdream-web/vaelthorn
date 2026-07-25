@@ -15,7 +15,7 @@ class KingdomSelectionController extends Controller
             return redirect()->route('login');
         }
 
-        if ($character->status !== 'active' || ($character->stats?->level ?? 0) < 1) {
+        if (! in_array($character->status, ['approved', 'active'], true) || ($character->stats?->level ?? 0) < 1) {
             return redirect()->route('onboarding');
         }
 
@@ -35,7 +35,7 @@ class KingdomSelectionController extends Controller
     {
         $character = auth()->user()?->character;
 
-        if (! $character || $character->status !== 'active') {
+        if (! $character || ! in_array($character->status, ['approved', 'active'], true)) {
             abort(403);
         }
 
@@ -55,6 +55,7 @@ class KingdomSelectionController extends Controller
         $character->update([
             'kingdom_id'         => $kingdom->id,
             'current_kingdom_id' => $kingdom->id,
+            'status'             => 'active',
         ]);
 
         return redirect()->route('home')->with('success', 'ยินดีต้อนรับสู่ ' . $kingdom->name . '!');

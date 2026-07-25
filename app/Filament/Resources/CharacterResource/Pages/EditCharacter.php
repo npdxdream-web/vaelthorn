@@ -4,7 +4,6 @@ namespace App\Filament\Resources\CharacterResource\Pages;
 
 use App\Filament\Resources\CharacterResource;
 use Filament\Actions;
-use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
@@ -26,13 +25,13 @@ class EditCharacter extends EditRecord
                     $record = $this->getRecord();
                     return $record->stats?->level === 0
                         ? 'ตัวละครยังอยู่ที่ Level 0 — จะถูก Approve และเลื่อนเป็น Level 1 ทันที'
-                        : 'ตัวละครผ่าน Onboarding แล้ว (Level ' . ($record->stats?->level ?? '?') . ') — จะถูก set status เป็น Active';
+                        : 'ตัวละครผ่าน Onboarding แล้ว (Level ' . ($record->stats?->level ?? '?') . ') — จะถูก set เป็น Approved และบังคับให้เลือกอาณาจักรก่อน ถึงจะกลายเป็น Active';
                 })
                 ->action(function () {
                     $record = $this->getRecord();
                     CharacterResource::approveCharacter($record);
                     Notification::make()
-                        ->title("Approve '{$record->name}' สำเร็จ")
+                        ->title("Approve '{$record->name}' สำเร็จ — รอผู้เล่นเลือกอาณาจักร")
                         ->success()
                         ->send();
                     $this->refreshFormData(['status']);
@@ -44,18 +43,21 @@ class EditCharacter extends EditRecord
                 ->label('Reject ตัวละคร')
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
-                ->form([
-                    Forms\Components\Textarea::make('reason')
-                        ->label('เหตุผลที่ไม่ผ่าน')
-                        ->helperText('ระบุให้ชัดเจนว่าด่านไหน หรือเกณฑ์ใดไม่ถึง — ผู้เล่นจะเห็นข้อความนี้และต้องทำแบบทดสอบ 3 ด่านใหม่ทั้งหมด')
-                        ->required()
-                        ->rows(4),
-                ])
+                ->form(fn () => CharacterResource::rejectFormSchema($this->getRecord()))
                 ->action(function (array $data) {
                     $record = $this->getRecord();
-                    CharacterResource::rejectCharacter($record, $data['reason']);
+
+                    if (! CharacterResource::handleRejectSubmit($record, $data)) {
+                        Notification::make()
+                            ->title('กรุณาเลือกอย่างน้อย 1 บท พร้อมเหตุผล')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
                     Notification::make()
-                        ->title("Reject '{$record->name}' แล้ว — แจ้งเหตุผลและรีเซ็ตด่านให้ทำใหม่แล้ว")
+                        ->title("Reject '{$record->name}' แล้ว — แจ้งเหตุผลและรีเซ็ตบทที่เลือกให้ทำใหม่แล้ว")
                         ->warning()
                         ->send();
                     $this->refreshFormData(['status']);

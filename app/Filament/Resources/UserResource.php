@@ -3,11 +3,13 @@
 namespace App\Filament\Resources;
 
 use App\Enums\UserRole;
+use App\Filament\Resources\CharacterResource;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Kingdom;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -102,9 +104,10 @@ class UserResource extends Resource
                         ->searchable(),
                     Forms\Components\Select::make('status')
                         ->label('Status')
-                        ->helperText('เลือก Active เพื่อ approve — สถานะนี้เท่านั้นที่ระบบใช้เช็คจริง ผู้เล่นจะถูกบังคับเลือกอาณาจักรในการเข้าเว็บครั้งถัดไป')
+                        ->helperText('ปกติใช้ปุ่ม Approve/Reject ในตารางรายชื่อแทน — ช่องนี้ไว้แก้ไขเองกรณีพิเศษเท่านั้น (Approved = รอผู้เล่นเลือกอาณาจักร, Active = เลือกอาณาจักรแล้ว)')
                         ->options([
                             'pending'  => 'Pending',
+                            'approved' => 'Approved',
                             'active'   => 'Active',
                             'rejected' => 'Rejected',
                         ])
@@ -230,7 +233,7 @@ class UserResource extends Resource
                 Tables\Columns\BadgeColumn::make('character.status')
                     ->label('สถานะตัวละคร')
                     ->colors([
-                        'warning' => 'pending',
+                        'warning' => ['pending', 'approved'],
                         'success' => 'active',
                         'danger'  => 'rejected',
                     ])
@@ -251,6 +254,7 @@ class UserResource extends Resource
                     ->label('สถานะตัวละคร')
                     ->options([
                         'pending'  => 'Pending',
+                        'approved' => 'Approved',
                         'active'   => 'Active',
                         'rejected' => 'Rejected',
                     ])
@@ -259,6 +263,50 @@ class UserResource extends Resource
                         : $query),
             ])
             ->actions([
+                // ── Approve Character ─────────────────────────────────────────
+                Tables\Actions\Action::make('approve_character')
+                    ->label('Approve')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Approve ตัวละคร')
+                    ->modalDescription(fn (User $record) =>
+                        $record->character?->stats?->level === 0
+                            ? 'ตัวละครยังอยู่ที่ Level 0 — จะถูก Approve และเลื่อนเป็น Level 1 ทันที'
+                            : 'ตัวละครผ่าน Onboarding แล้ว — จะถูก set เป็น Approved และบังคับให้เลือกอาณาจักรก่อน ถึงจะกลายเป็น Active'
+                    )
+                    ->action(function (User $record) {
+                        CharacterResource::approveCharacter($record->character);
+                        Notification::make()
+                            ->title("Approve '{$record->character->name}' สำเร็จ — รอผู้เล่นเลือกอาณาจักร")
+                            ->success()
+                            ->send();
+                    })
+                    ->visible(fn (User $record) => $record->character?->status === 'pending'),
+
+                // ── Reject ────────────────────────────────────────────────────
+                Tables\Actions\Action::make('reject_character')
+                    ->label('Reject')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->form(fn (User $record) => CharacterResource::rejectFormSchema($record->character))
+                    ->action(function (User $record, array $data) {
+                        if (! CharacterResource::handleRejectSubmit($record->character, $data)) {
+                            Notification::make()
+                                ->title('กรุณาเลือกอย่างน้อย 1 บท พร้อมเหตุผล')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        Notification::make()
+                            ->title("Reject '{$record->character->name}' แล้ว — แจ้งเหตุผลและรีเซ็ตบทที่เลือกให้ทำใหม่แล้ว")
+                            ->warning()
+                            ->send();
+                    })
+                    ->visible(fn (User $record) => $record->character?->status === 'pending'),
+
                 Tables\Actions\EditAction::make()->label('จัดการ'),
             ])
             ->bulkActions([]);

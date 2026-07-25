@@ -121,20 +121,7 @@
         </p>
     </header>
 
-    {{-- ── Rejection notice ──────────────────────────────────── --}}
-    @if($character->stats?->rejection_reason)
-        <div class="mb-10 border border-red-800/50 bg-red-950/20 px-6 py-5" style="border-radius:0.25rem">
-            <p class="font-display mb-2 text-xs uppercase tracking-[0.25em] text-red-400">
-                ผู้พิทักษ์ปฏิเสธบันทึกของเจ้า
-            </p>
-            <p class="font-chronicle text-sm italic leading-relaxed text-red-200/90">
-                {{ $character->stats->rejection_reason }}
-            </p>
-            <p class="mt-3 text-xs text-red-300/60">
-                กรุณาทบทวนและเขียนบันทึกทั้ง 3 บทใหม่อีกครั้ง
-            </p>
-        </div>
-    @endif
+    {{-- Rejection notices now render per-stage, inside each stage card below. --}}
 
     {{-- ── Progress track ─────────────────────────────────────── --}}
     <div class="mb-12 px-4">
@@ -302,6 +289,19 @@
                             <span class="text-xs text-gold/50">✦</span>
                             <div class="h-px flex-1 bg-gradient-to-l from-transparent to-gold/35"></div>
                         </div>
+
+                        {{-- Rejection bubble — only this stage's reason, only while it needs resubmission --}}
+                        @php $stageRejectReason = $character->stats?->{"stage_{$num}_rejection_reason"} ?? null; @endphp
+                        @if($stageRejectReason)
+                            <div class="mb-4 border border-red-800/50 bg-red-950/20 px-5 py-4" style="border-radius:0.25rem">
+                                <p class="font-display mb-1.5 text-xs uppercase tracking-[0.2em] text-red-400">
+                                    ผู้พิทักษ์ปฏิเสธบทนี้
+                                </p>
+                                <p class="font-chronicle text-sm italic leading-relaxed text-red-200/90">
+                                    {{ $stageRejectReason }}
+                                </p>
+                            </div>
+                        @endif
 
                         {{-- Prompt --}}
                         <p class="font-chronicle mt-4 mb-2 text-sm italic leading-relaxed text-text/75">

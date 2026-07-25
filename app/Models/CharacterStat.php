@@ -22,7 +22,9 @@ class CharacterStat extends Model
         'stage_1_completed',
         'stage_2_completed',
         'stage_3_completed',
-        'rejection_reason',
+        'stage_1_rejection_reason',
+        'stage_2_rejection_reason',
+        'stage_3_rejection_reason',
     ];
 
     protected $casts = [

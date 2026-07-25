@@ -20,13 +20,15 @@ class OnboardingController extends Controller
         $nextStage   = $this->onboarding->nextStage($character);
         $allComplete = $nextStage === null;
 
-        // Active + onboarding complete + no kingdom → choose kingdom
-        if ($character->status === 'active' && $allComplete && ! $character->kingdom_id) {
+        $isApprovedOrActive = in_array($character->status, ['approved', 'active'], true);
+
+        // Approved/active + onboarding complete + no kingdom → choose kingdom
+        if ($isApprovedOrActive && $allComplete && ! $character->kingdom_id) {
             return redirect()->route('choose-kingdom');
         }
 
-        // Active + onboarding complete + has kingdom → game
-        if ($character->status === 'active' && $allComplete && $character->kingdom_id) {
+        // Approved/active + onboarding complete + has kingdom → game
+        if ($isApprovedOrActive && $allComplete && $character->kingdom_id) {
             return redirect()->route('home');
         }
 
@@ -47,7 +49,7 @@ class OnboardingController extends Controller
 
         $allComplete = $this->onboarding->nextStage($character) === null;
 
-        if ($character->status === 'active' && $allComplete && $character->kingdom_id) {
+        if (in_array($character->status, ['approved', 'active'], true) && $allComplete && $character->kingdom_id) {
             return redirect()->route('home');
         }
 

@@ -38,8 +38,9 @@ class OnboardingService
         $flag         = "stage_{$stage}_completed";
         $stats->$flag = true;
 
-        if ($stage === 1 && $stats->rejection_reason) {
-            $stats->rejection_reason = null;
+        $reasonField = "stage_{$stage}_rejection_reason";
+        if ($stats->$reasonField) {
+            $stats->$reasonField = null;
         }
 
         $stats->save();

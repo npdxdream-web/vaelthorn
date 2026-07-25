@@ -24,9 +24,9 @@ class EnsureKingdomSelected
             return $next($request);
         }
 
-        // Active character with no kingdom and level 1+ → must choose a kingdom first
+        // Approved (or legacy active-with-no-kingdom) + no kingdom + level 1+ → must choose first
         if (
-            $character->status === 'active'
+            in_array($character->status, ['approved', 'active'], true)
             && $character->kingdom_id === null
             && ($character->stats?->level ?? 0) >= 1
         ) {

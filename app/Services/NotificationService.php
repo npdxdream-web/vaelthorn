@@ -53,7 +53,10 @@ class NotificationService
         ]);
     }
 
-    public function notifyOnboardingRejected(Character $character, string $reason): void
+    /**
+     * @param array<int> $rejectedStages stage numbers that were rejected, e.g. [2] or [1, 3]
+     */
+    public function notifyOnboardingRejected(Character $character, array $rejectedStages): void
     {
         $character->loadMissing('user');
 
@@ -62,12 +65,14 @@ class NotificationService
             return;
         }
 
+        $stageList = implode(', ', $rejectedStages);
+
         Notification::create([
             'user_id'   => $user->id,
             'type'      => 'onboarding_rejected',
             'title'     => 'บันทึกของคุณต้องแก้ไข — กรุณาทำแบบทดสอบใหม่',
-            'body'      => $reason,
-            'data'      => ['character_id' => $character->id, 'reason' => $reason],
+            'body'      => "บทที่ {$stageList} ต้องแก้ไข — ดูรายละเอียดที่หน้าบันทึกของคุณ",
+            'data'      => ['character_id' => $character->id, 'rejected_stages' => $rejectedStages],
             'link_type' => 'character',
             'link_id'   => $character->id,
         ]);

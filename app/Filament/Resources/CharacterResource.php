@@ -26,35 +26,97 @@ class CharacterResource extends Resource
 
     // ─── Shared approve logic ─────────────────────────────────────────────────
 
+    /**
+     * Marks onboarding as approved — does NOT make the character playable yet.
+     * 'approved' forces the character to /choose-kingdom on every request
+     * (EnsureKingdomSelected); KingdomSelectionController::store() is what
+     * flips status to 'active', automatically, the moment they pick a kingdom.
+     */
     public static function approveCharacter(Character $record): void
     {
-        $record->update(['status' => 'active']);
-        // Level promotion (0→1) is handled by OnboardingService when stages complete.
-        // If admin approves before stages are done, character stays at level 0 and
-        // continues onboarding on /onboarding, then chooses city after completion.
+        $record->update(['status' => 'approved']);
     }
 
     /**
-     * Reject the 3-stage onboarding submission — clears the entries and stage
-     * flags so the character can redo it, stores the reason, and notifies the
-     * player. Status stays 'pending' (not 'rejected') so this remains a normal
+     * Reject one or more specific onboarding stages — only the selected stages'
+     * entries/flags/reasons are touched, the rest are left completely alone.
+     * Status stays 'pending' (not 'rejected') so this remains a normal
      * "send back for revision" loop rather than a terminal state.
+     *
+     * @param array<int,string> $stageReasons stage number => reason, e.g. [2 => '...']
      */
-    public static function rejectCharacter(Character $record, string $reason): void
+    public static function rejectCharacter(Character $record, array $stageReasons): void
     {
-        OnboardingEntry::where('character_id', $record->id)->delete();
+        OnboardingEntry::where('character_id', $record->id)
+            ->whereIn('stage', array_keys($stageReasons))
+            ->delete();
 
         $stats = $record->stats;
         if ($stats) {
-            $stats->update([
-                'stage_1_completed' => false,
-                'stage_2_completed' => false,
-                'stage_3_completed' => false,
-                'rejection_reason'  => $reason,
-            ]);
+            $updates = [];
+            foreach ($stageReasons as $stage => $reason) {
+                $updates["stage_{$stage}_completed"]         = false;
+                $updates["stage_{$stage}_rejection_reason"]  = $reason;
+            }
+            $stats->update($updates);
         }
 
-        app(NotificationService::class)->notifyOnboardingRejected($record, $reason);
+        app(NotificationService::class)->notifyOnboardingRejected($record, array_keys($stageReasons));
+    }
+
+    /**
+     * Reject form: one Toggle+Textarea pair per stage that's actually been
+     * submitted (stage_X_completed) — nothing to reject on a stage the player
+     * hasn't gotten to yet. Shared by CharacterResource's + UserResource's
+     * Reject actions and EditCharacter's header action.
+     */
+    public static function rejectFormSchema(?Character $record): array
+    {
+        $stageLabels = [1 => 'ตัวตน', 2 => 'เหตุ', 3 => 'ปณิธาน'];
+        $stats       = $record?->stats;
+        $schema      = [];
+
+        foreach ($stageLabels as $num => $label) {
+            if (! ($stats?->{"stage_{$num}_completed"} ?? false)) {
+                continue;
+            }
+
+            $schema[] = Forms\Components\Checkbox::make("reject_stage_{$num}")
+                ->label("บทที่ {$num} — {$label}")
+                ->live();
+
+            $schema[] = Forms\Components\Textarea::make("reason_stage_{$num}")
+                ->label('เหตุผล')
+                ->rows(3)
+                ->visible(fn (Forms\Get $get) => (bool) $get("reject_stage_{$num}"))
+                ->required(fn (Forms\Get $get) => (bool) $get("reject_stage_{$num}"));
+        }
+
+        return $schema;
+    }
+
+    /**
+     * Builds the stage=>reason map from the reject form's submitted data and
+     * calls rejectCharacter(). Returns false if nothing was actually selected
+     * (caller should show a validation-style notification in that case).
+     */
+    public static function handleRejectSubmit(Character $record, array $data): bool
+    {
+        $stageReasons = [];
+
+        foreach ([1, 2, 3] as $num) {
+            if (! empty($data["reject_stage_{$num}"]) && filled($data["reason_stage_{$num}"] ?? null)) {
+                $stageReasons[$num] = $data["reason_stage_{$num}"];
+            }
+        }
+
+        if (empty($stageReasons)) {
+            return false;
+        }
+
+        static::rejectCharacter($record, $stageReasons);
+
+        return true;
     }
 
     // ─── Form ─────────────────────────────────────────────────────────────────
@@ -141,12 +203,19 @@ class CharacterResource extends Resource
                                     . e($entry->content) . '</div>'
                                 ));
                         } else {
-                            $done  = $stats?->$flag ? '(flag set)' : '';
+                            $done          = $stats?->$flag ? '(flag set)' : '';
+                            $reasonField   = "stage_{$num}_rejection_reason";
+                            $rejectReason  = $stats?->$reasonField;
+                            $content       = '<span style="color:#6b6050">ยังไม่ได้ส่ง ' . $done . '</span>';
+
+                            if ($rejectReason) {
+                                $content .= '<div style="margin-top:0.4rem;color:#f87171;font-size:0.8rem">'
+                                    . 'ถูก Reject: ' . e($rejectReason) . '</div>';
+                            }
+
                             $components[] = Forms\Components\Placeholder::make("entry_stage_{$num}")
                                 ->label("○ {$label}")
-                                ->content(new \Illuminate\Support\HtmlString(
-                                    '<span style="color:#6b6050">ยังไม่ได้ส่ง ' . $done . '</span>'
-                                ));
+                                ->content(new \Illuminate\Support\HtmlString($content));
                         }
                     }
 
@@ -225,12 +294,12 @@ class CharacterResource extends Resource
                     ->modalDescription(fn (Character $record) =>
                         $record->stats?->level === 0
                             ? 'ตัวละครยังอยู่ที่ Level 0 — จะถูก Approve และเลื่อนเป็น Level 1 ทันที'
-                            : 'ตัวละครผ่าน Onboarding แล้ว (Level ' . ($record->stats?->level ?? '?') . ') — จะถูก set status เป็น Active'
+                            : 'ตัวละครผ่าน Onboarding แล้ว (Level ' . ($record->stats?->level ?? '?') . ') — จะถูก set เป็น Approved และบังคับให้เลือกอาณาจักรก่อน ถึงจะกลายเป็น Active'
                     )
                     ->action(function (Character $record) {
                         static::approveCharacter($record);
                         Notification::make()
-                            ->title("Approve '{$record->name}' สำเร็จ")
+                            ->title("Approve '{$record->name}' สำเร็จ — รอผู้เล่นเลือกอาณาจักร")
                             ->success()
                             ->send();
                     })
@@ -241,17 +310,19 @@ class CharacterResource extends Resource
                     ->label('Reject')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->form([
-                        Forms\Components\Textarea::make('reason')
-                            ->label('เหตุผลที่ไม่ผ่าน')
-                            ->helperText('ระบุให้ชัดเจนว่าด่านไหน หรือเกณฑ์ใดไม่ถึง — ผู้เล่นจะเห็นข้อความนี้และต้องทำแบบทดสอบ 3 ด่านใหม่ทั้งหมด')
-                            ->required()
-                            ->rows(4),
-                    ])
+                    ->form(fn (Character $record) => static::rejectFormSchema($record))
                     ->action(function (Character $record, array $data) {
-                        static::rejectCharacter($record, $data['reason']);
+                        if (! static::handleRejectSubmit($record, $data)) {
+                            Notification::make()
+                                ->title('กรุณาเลือกอย่างน้อย 1 บท พร้อมเหตุผล')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
                         Notification::make()
-                            ->title("Reject '{$record->name}' แล้ว — แจ้งเหตุผลและรีเซ็ตด่านให้ทำใหม่แล้ว")
+                            ->title("Reject '{$record->name}' แล้ว — แจ้งเหตุผลและรีเซ็ตบทที่เลือกให้ทำใหม่แล้ว")
                             ->warning()
                             ->send();
                     })

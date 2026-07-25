@@ -50,10 +50,11 @@ class OnboardingKingdomFlowTest extends TestCase
         $this->get('/onboarding')->assertOk();
         $this->post('/choose-kingdom', ['kingdom_id' => 1])->assertForbidden();
 
-        // Admin approves (CharacterResource::approveCharacter is the only place that flips status).
+        // Admin approves — this marks onboarding approved but does NOT make the character
+        // active yet; it must still be forced through kingdom choice first.
         CharacterResource::approveCharacter($character);
         $character->refresh();
-        $this->assertSame('active', $character->status);
+        $this->assertSame('approved', $character->status);
 
         // actingAs() reuses one User object across every simulated request in this test, so its
         // already-cached `character` relation (loaded on the first request above) is stale after
@@ -80,6 +81,7 @@ class OnboardingKingdomFlowTest extends TestCase
         $character->refresh();
         $this->assertSame($kingdom->id, $character->kingdom_id);
         $this->assertSame($kingdom->id, $character->current_kingdom_id);
+        $this->assertSame('active', $character->status);
         $user->refresh();
 
         // Kingdom is permanent — a second choice must be rejected server-side.
