@@ -32,7 +32,7 @@
                         <span class="archive-label">Status</span>
                         <div class="mt-1">
                             <span class="rounded-full border px-2 py-0.5 text-xs
-                                {{ $character->status === 'approved' ? 'border-emerald-400/30 bg-emerald-950/20 text-emerald-300'
+                                {{ $character->status === 'active' ? 'border-emerald-400/30 bg-emerald-950/20 text-emerald-300'
                                    : 'border-amber-400/30 bg-amber-950/20 text-amber-300' }}">
                                 {{ ucfirst($character->status) }}
                             </span>

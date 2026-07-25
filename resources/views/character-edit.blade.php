@@ -11,7 +11,7 @@
                 <p class="archive-label mb-3">Profile</p>
                 <div class="space-y-2 text-sm text-text-muted">
                     <div>Kingdom: <span class="font-display text-gold">{{ $character->kingdom->name ?? '—' }}</span></div>
-                    <div>Status: <span class="font-display {{ $character->status === 'approved' ? 'text-emerald-400' : 'text-amber-400' }}">{{ ucfirst($character->status) }}</span></div>
+                    <div>Status: <span class="font-display {{ $character->status === 'active' ? 'text-emerald-400' : 'text-amber-400' }}">{{ ucfirst($character->status) }}</span></div>
                     <div>Rank: <span class="font-display text-gold">{{ $character->auto_rank }}</span></div>
                 </div>
             </div>

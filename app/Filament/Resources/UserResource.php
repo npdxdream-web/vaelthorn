@@ -102,12 +102,11 @@ class UserResource extends Resource
                         ->searchable(),
                     Forms\Components\Select::make('status')
                         ->label('Status')
+                        ->helperText('เลือก Active เพื่อ approve — สถานะนี้เท่านั้นที่ระบบใช้เช็คจริง ผู้เล่นจะถูกบังคับเลือกอาณาจักรในการเข้าเว็บครั้งถัดไป')
                         ->options([
-                            'pending'   => 'Pending',
-                            'approved'  => 'Approved',
-                            'active'    => 'Active',
-                            'rejected'  => 'Rejected',
-                            'suspended' => 'Suspended',
+                            'pending'  => 'Pending',
+                            'active'   => 'Active',
+                            'rejected' => 'Rejected',
                         ])
                         ->required(),
                     Forms\Components\TextInput::make('title')
@@ -232,9 +231,8 @@ class UserResource extends Resource
                     ->label('สถานะตัวละคร')
                     ->colors([
                         'warning' => 'pending',
-                        'success' => ['active', 'approved'],
+                        'success' => 'active',
                         'danger'  => 'rejected',
-                        'gray'    => 'suspended',
                     ])
                     ->default('—'),
                 Tables\Columns\TextColumn::make('created_at')
@@ -252,11 +250,9 @@ class UserResource extends Resource
                 Tables\Filters\SelectFilter::make('character_status')
                     ->label('สถานะตัวละคร')
                     ->options([
-                        'pending'   => 'Pending',
-                        'approved'  => 'Approved',
-                        'active'    => 'Active',
-                        'rejected'  => 'Rejected',
-                        'suspended' => 'Suspended',
+                        'pending'  => 'Pending',
+                        'active'   => 'Active',
+                        'rejected' => 'Rejected',
                     ])
                     ->query(fn ($query, array $data) => $data['value']
                         ? $query->whereHas('character', fn ($q) => $q->where('status', $data['value']))
