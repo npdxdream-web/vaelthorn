@@ -12,7 +12,7 @@ class HomeController extends Controller
 {
     public function index()
     {
-        $kingdoms = Kingdom::with('cities')->where('is_active', true)->get();
+        $kingdoms = Kingdom::with('cities')->where('is_active', true)->orderBy('sort_order')->get();
 
         $recentThreads = Thread::with('city')
             ->where('status', 'open')

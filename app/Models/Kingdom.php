@@ -14,6 +14,7 @@ class Kingdom extends Model
         'color',
         'icon',
         'is_active',
+        'sort_order',
     ];
 
     public function cities()

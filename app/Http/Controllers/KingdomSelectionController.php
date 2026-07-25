@@ -25,6 +25,7 @@ class KingdomSelectionController extends Controller
 
         $kingdoms = Kingdom::with('cities')
             ->where('is_active', true)
+            ->orderBy('sort_order')
             ->get();
 
         return view('choose-kingdom', compact('character', 'kingdoms'));

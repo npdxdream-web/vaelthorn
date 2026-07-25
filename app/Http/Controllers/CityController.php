@@ -21,6 +21,12 @@ class CityController extends Controller
             return redirect()->route('register')->with('warning', 'กรุณาสร้างตัวละครก่อนเข้าชมเมือง');
         }
 
+        // Closed kingdom: block entirely for non-staff, even for their own home
+        // kingdom or an active travel permit — a closed kingdom stays invisible.
+        if (! $user->isAtLeastModerator() && ! $city->kingdom->is_active) {
+            abort(404);
+        }
+
         if (! $user->isAtLeastModerator() && $character) {
             $isHomeKingdom    = $character->kingdom_id === $city->kingdom_id;
             $isCurrentKingdom = $character->current_kingdom_id === $city->kingdom_id;
@@ -81,6 +87,12 @@ class CityController extends Controller
         }
 
         $authUser = auth()->user();
+
+        // Closed kingdom: same hard block as the web route — stays invisible to non-staff.
+        if (! $authUser?->isAtLeastModerator() && ! $city->kingdom->is_active) {
+            abort(404, 'City not found');
+        }
+
         $threads  = Thread::where('city_id', $city->id)
             ->where(function ($q) use ($authUser) {
                 if ($authUser?->isAtLeastModerator()) {

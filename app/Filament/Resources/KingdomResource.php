@@ -35,6 +35,8 @@ class KingdomResource extends Resource
                 Forms\Components\TextInput::make('icon')
                     ->maxLength(255),
                 Forms\Components\Toggle::make('is_active')
+                    ->label('เปิดใช้งาน')
+                    ->helperText('ปิดแล้วผู้เล่นจะเลือกอาณาจักรนี้ไม่ได้, มองไม่เห็นในหน้าแรก, และเข้าเมืองในอาณาจักรนี้ไม่ได้เลย (แม้จะเป็นบ้านเกิดหรือมี travel permit อยู่แล้วก็ตาม) — แอดมิน/ผู้ดูแลยังเข้าได้ปกติ')
                     ->required(),
             ]);
     }
@@ -42,6 +44,8 @@ class KingdomResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->reorderable('sort_order')
+            ->defaultSort('sort_order')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
@@ -50,6 +54,7 @@ class KingdomResource extends Resource
                 Tables\Columns\TextColumn::make('icon')
                     ->searchable(),
                 Tables\Columns\IconColumn::make('is_active')
+                    ->label('เปิดใช้งาน')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
