@@ -406,15 +406,19 @@
                 </div>
             @endif
 
-            {{-- Owner actions: edit (pending/draft/request_edit) + delete (draft only) --}}
-            @if(auth()->id() === $thread->created_by && in_array($thread->status, ['pending','draft','request_edit']))
+            {{-- Owner actions: edit (pending/draft/request_edit) + delete (draft only).
+                 Admins/moderators also get the edit link regardless of status — the
+                 controller (ThreadController::edit/update) already lets admins edit a
+                 live thread, this just exposes that in the UI (e.g. to fix a thread's
+                 banner image after it's gone live). --}}
+            @if((auth()->id() === $thread->created_by && in_array($thread->status, ['pending','draft','request_edit'])) || auth()->user()->isAtLeastModerator())
                 <div class="mb-6 flex items-center gap-2">
                     <a href="{{ route('thread.edit', $thread->id) }}"
                        class="inline-flex items-center gap-2 rounded-lg border border-amber-400/40 bg-amber-950/20 px-4 py-2 text-sm text-amber-300 hover:bg-amber-950/40">
                         ✏️ แก้ไขกระทู้
                     </a>
 
-                    @if($thread->status === 'draft')
+                    @if($thread->status === 'draft' && auth()->id() === $thread->created_by)
                     <form method="POST" action="{{ route('thread.destroy', $thread->id) }}"
                           onsubmit="return confirm('ลบกระทู้ร่างนี้ถาวรหรือไม่?\n\nกระทู้จะถูกย้ายไปถังขยะและลบหลัง 3 วัน')">
                         @csrf @method('DELETE')
