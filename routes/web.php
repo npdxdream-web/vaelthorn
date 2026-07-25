@@ -82,7 +82,6 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/posts/{id}', [ThreadController::class, 'updatePost'])->name('post.update');
     Route::delete('/posts/{id}', [ThreadController::class, 'destroyPost'])->name('post.destroy');
     Route::post('/threads/{id}/posts', [ThreadController::class, 'store'])->name('post.store');
-    Route::post('/posts/{id}/react', [ThreadController::class, 'reactPost'])->name('post.react');
 
     // Character Profile & Edit
     Route::get('/character/edit', [CharacterController::class, 'edit'])->name('character.edit');

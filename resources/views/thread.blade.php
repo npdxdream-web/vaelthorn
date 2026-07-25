@@ -103,7 +103,7 @@
             border-radius: 0 !important;
         }
         .thread-reading {
-            font-size: 1.35rem !important;
+            font-size: 18px !important;
             line-height: 1.9 !important;
         }
         .thread-author-panel .font-display.text-lg {
@@ -164,24 +164,44 @@
             margin-top: 16px;
         }
 
-        /* ── Plain decorative hero strip (shown only when city.banner_image is set) ── */
-        .thread-hero-strip {
+        /* ── Hero banner (shown only when city.banner_image is set): title/meta
+               overlay directly on the image as one unit, not a separate strip ── */
+        .thread-hero-banner {
             position: relative;
-            height: 130px;
+            min-height: 200px;
             overflow: hidden;
             background-size: cover;
             background-position: center;
             background-color: #141210;
+            display: flex;
+            align-items: flex-end;
         }
-        .thread-hero-strip__fade {
+        .thread-hero-banner__shadow {
             position: absolute;
-            left: 0; right: 0; bottom: 0;
-            height: 45%;
-            background: linear-gradient(to bottom, transparent 0%, rgba(10,9,7,0.95) 100%);
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(6,5,4,0.1) 0%, rgba(6,5,4,0.3) 55%, rgba(6,5,4,0.9) 100%);
+        }
+        .thread-hero-banner__content {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            padding: 16px 22px 18px;
+        }
+        .thread-hero-banner .thread-header-compact__breadcrumb,
+        .thread-hero-banner .thread-header-compact__meta {
+            color: #cbbfa0;
+        }
+        .thread-hero-banner .thread-header-compact__breadcrumb:hover {
+            color: #f0d580;
+        }
+        .thread-hero-banner .thread-header-compact__title {
+            font-size: 24px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.65);
         }
         @media (max-width: 639px) {
             .thread-header-compact__title { font-size: 17px; }
-            .thread-hero-strip { height: 95px; }
+            .thread-hero-banner { min-height: 150px; }
+            .thread-hero-banner .thread-header-compact__title { font-size: 19px; }
         }
 
         /* ── Lore post: opening manuscript-style post by an admin ───────── */
@@ -190,7 +210,7 @@
         }
         .lore-post-body.thread-reading {
             font-family: var(--font-chronicle);
-            font-size: 14px !important;
+            font-size: 18px !important;
             line-height: 2 !important;
             color: #d8d1bd;
         }
@@ -202,22 +222,23 @@
             background: #2a2620;
             margin-top: 28px;
         }
-        @media (max-width: 639px) {
-            .lore-post-body.thread-reading { font-size: 13px !important; }
-        }
 
-        /* ── Drop cap: user-applied via the "Drop Cap" toolbar button ───── */
+        /* ── Drop cap: user-applied via the "Drop Cap" toolbar button ─────
+           Fixed to exactly 2 body-text line-boxes tall (18px font-size × line-height
+           2 = 36px per line, ×2 = 72px) rather than a bare font-size — Thai vowel/tone
+           marks (e.g. the ่ in "ที่") add height above/below the base glyph without
+           changing its declared font-size, so pinning only font-size let some letters
+           render taller than others and look unaligned ("floating"). Locking line-height
+           to the 2-line box and keeping font-size well under it gives every glyph the
+           same headroom for combining marks, so the wrap is always symmetric. */
         .drop-cap {
             float: left;
             font-family: var(--font-decorative);
-            font-size: 38px;
-            line-height: 0.85;
+            font-size: 58px;
+            line-height: 72px;
             color: #d4af37;
             font-weight: 700;
-            padding: 6px 8px 0 0;
-        }
-        @media (max-width: 639px) {
-            .drop-cap { font-size: 32px; }
+            padding: 0 8px 0 0;
         }
     </style>
 @endpush
@@ -243,20 +264,20 @@
                 </div>
                 <div class="thread-side-body">
                     <h3 class="font-display text-sm text-gold">{{ $thread->city->name }}</h3>
-                    <p class="mt-1 font-display text-[0.5rem] uppercase tracking-[0.2em] text-text-subtle">{{ $thread->city->kingdom?->name ?? 'Unknown City' }}</p>
+                    <p class="mt-1 font-display text-[11px] uppercase tracking-[0.2em] text-text-subtle">{{ $thread->city->kingdom?->name ?? 'Unknown City' }}</p>
                     <p class="mt-3 text-xs leading-relaxed text-text-muted/75">{{ $thread->city->description ?? 'A quiet chronicle hall where stories gather in shadow and gold.' }}</p>
                     <div class="mt-4 grid grid-cols-3 gap-2">
                         <div class="border border-gold/12 bg-black/20 p-2 text-center">
                             <div class="font-display text-sm text-gold">{{ $thread->city?->threads()->count() ?? 1 }}</div>
-                            <div class="archive-label text-[0.44rem]">Threads</div>
+                            <div class="archive-label text-[11px]">Threads</div>
                         </div>
                         <div class="border border-gold/12 bg-black/20 p-2 text-center">
                             <div class="font-display text-sm text-gold">{{ $participants->count() }}</div>
-                            <div class="archive-label text-[0.44rem]">Members</div>
+                            <div class="archive-label text-[11px]">Members</div>
                         </div>
                         <div class="border border-gold/12 bg-black/20 p-2 text-center">
                             <div class="font-display text-sm text-gold">{{ $posts->count() }}</div>
-                            <div class="archive-label text-[0.44rem]">Online</div>
+                            <div class="archive-label text-[11px]">Online</div>
                         </div>
                     </div>
                 </div>
@@ -273,13 +294,13 @@
                             <span class="h-1.5 w-1.5 rounded-full {{ $recent->isLive() ? 'bg-emerald-500' : 'bg-gold/45' }}"></span>
                             <span class="min-w-0 flex-1">
                                 <span class="block truncate text-xs text-text-muted group-hover:text-gold">{{ $recent->title }}</span>
-                                <span class="font-display text-[0.46rem] uppercase tracking-[0.18em] text-text-subtle">{{ $recent->approvedPostsCount() }} posts</span>
+                                <span class="font-display text-[11px] uppercase tracking-[0.18em] text-text-subtle">{{ $recent->approvedPostsCount() }} posts</span>
                             </span>
                         </a>
                     @empty
                         <p class="text-xs text-text-subtle">No other threads yet.</p>
                     @endforelse
-                    <a href="{{ route('city', $thread->city->id) }}" class="mt-3 block border border-gold/12 px-3 py-2 text-center font-display text-[0.5rem] uppercase tracking-[0.18em] text-gold/55 hover:border-gold/35 hover:text-gold">All Threads</a>
+                    <a href="{{ route('city', $thread->city->id) }}" class="mt-3 block border border-gold/12 px-3 py-2 text-center font-display text-[11px] uppercase tracking-[0.18em] text-gold/55 hover:border-gold/35 hover:text-gold">All Threads</a>
                 </div>
             </div>
 
@@ -300,7 +321,7 @@
                             </x-avatar-frame>
                             <div class="min-w-0 flex-1">
                                 <div class="truncate text-xs text-text-muted">{{ $participant->name }}</div>
-                                <div class="font-display text-[0.45rem] uppercase tracking-[0.18em] text-text-subtle">{{ $participant->auto_rank }}</div>
+                                <div class="font-display text-[11px] uppercase tracking-[0.18em] text-text-subtle">{{ $participant->auto_rank }}</div>
                             </div>
                             <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                         </div>
@@ -344,29 +365,44 @@
 
         {{-- ── Main column ──────────────────────────────────────────────────── --}}
 
-            {{-- Back link + title: single compact header, always the same shape --}}
+            {{-- Back link + title: single hero unit when the city has a banner,
+                 otherwise the same plain compact header as always --}}
             @php
                 $locationText = $thread->location_label ?? $thread->city?->kingdom?->name;
             @endphp
-            <div class="thread-header-compact mb-6">
-                <a href="{{ route('city', $thread->city->id) }}" class="thread-header-compact__breadcrumb">
-                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                    </svg>
-                    Back to {{ $thread->city->name }}
-                </a>
-                <h1 class="thread-header-compact__title">{{ $thread->title }}</h1>
-                <div class="thread-header-compact__meta">
-                    {{ $thread->isLive() ? 'LIVE' : 'CLOSED' }}
-                    @if($locationText) &middot; {{ $locationText }} @endif
-                    &middot; {{ $thread->approvedPostsCount() }} posts
+            @if($thread->banner_image)
+                <div class="thread-hero-banner mb-6" style="background-image:url('{{ $thread->banner_image_url }}');">
+                    <div class="thread-hero-banner__shadow"></div>
+                    <div class="thread-hero-banner__content">
+                        <a href="{{ route('city', $thread->city->id) }}" class="thread-header-compact__breadcrumb">
+                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                            </svg>
+                            Back to {{ $thread->city->name }}
+                        </a>
+                        <h1 class="thread-header-compact__title">{{ $thread->title }}</h1>
+                        <div class="thread-header-compact__meta">
+                            {{ $thread->isLive() ? 'LIVE' : 'CLOSED' }}
+                            @if($locationText) &middot; {{ $locationText }} @endif
+                            &middot; {{ $thread->approvedPostsCount() }} posts
+                        </div>
+                    </div>
                 </div>
-                <div class="thread-header-hairline"></div>
-            </div>
-
-            @if($thread->city->banner_image)
-                <div class="thread-hero-strip mb-6" style="background-image:url('{{ $thread->city->banner_image_url }}');">
-                    <div class="thread-hero-strip__fade"></div>
+            @else
+                <div class="thread-header-compact mb-6">
+                    <a href="{{ route('city', $thread->city->id) }}" class="thread-header-compact__breadcrumb">
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                        Back to {{ $thread->city->name }}
+                    </a>
+                    <h1 class="thread-header-compact__title">{{ $thread->title }}</h1>
+                    <div class="thread-header-compact__meta">
+                        {{ $thread->isLive() ? 'LIVE' : 'CLOSED' }}
+                        @if($locationText) &middot; {{ $locationText }} @endif
+                        &middot; {{ $thread->approvedPostsCount() }} posts
+                    </div>
+                    <div class="thread-header-hairline"></div>
                 </div>
             @endif
 
@@ -589,46 +625,14 @@
                                 {!! $post->content !!}
                             </div>
 
-                            {{-- Witness System --}}
-                            @if($post->status === 'approved' && $currentCharacter && $currentCharacter->id !== $post->character_id)
-                            <div style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 0; clear:both;">
-                                @foreach([
-                                    'witness'  => ['👁', 'Witness',  '#c8a84b'],
-                                    'inspired' => ['✦', 'Inspired', '#7ab0d4'],
-                                    'moved'    => ['♡', 'Moved',    '#c05080'],
-                                ] as $type => [$icon, $label, $color])
-                                    @php
-                                        $count    = $post->reactions()->where('type', $type)->count();
-                                        $reacted  = $post->hasReactionFrom($currentCharacter->id, $type);
-                                    @endphp
-                                    <form method="POST" action="{{ route('post.react', $post->id) }}" style="display:inline;">
-                                        @csrf
-                                        <input type="hidden" name="type" value="{{ $type }}">
-                                        <button type="submit" style="
-                                            display:inline-flex; align-items:center; gap:5px;
-                                            font-family:var(--font-display); font-size:10px; letter-spacing:1.5px;
-                                            border:0.5px solid {{ $reacted ? $color.'88' : '#c8a84b22' }};
-                                            background:{{ $reacted ? $color.'15' : 'transparent' }};
-                                            color:{{ $reacted ? $color : '#6b6050' }};
-                                            padding:4px 10px; cursor:pointer; transition:.15s ease;
-                                        ">
-                                            <span>{{ $icon }}</span>
-                                            <span>{{ strtoupper($label) }}</span>
-                                            @if($count > 0)<span style="color:{{ $color }}; opacity:.8">{{ $count }}</span>@endif
-                                        </button>
-                                    </form>
-                                @endforeach
-                            </div>
-                            @endif
-
                             {{-- Status badge + council actions --}}
                             <div style="display:flex; align-items:center; justify-content:center; gap:10px; padding:8px 0; clear:both;">
                                 @if($post->status === 'approved')
-                                    <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#2d7a3a; border:0.5px solid #2d7a3a44; padding:3px 10px;">APPROVED</span>
+                                    {{-- Approved is the normal/default state — hidden to reduce badge noise --}}
                                 @elseif($post->status === 'pending')
-                                    <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#c8a84b; border:0.5px solid #c8a84b44; padding:3px 10px;">● PENDING</span>
+                                    <span style="font-family:var(--font-display); font-size:11px; letter-spacing:2px; color:#c8a84b; border:0.5px solid #c8a84b44; padding:3px 10px;">● PENDING</span>
                                 @else
-                                    <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#8B2020; border:0.5px solid #8B202044; padding:3px 10px;">{{ strtoupper($post->status) }}</span>
+                                    <span style="font-family:var(--font-display); font-size:11px; letter-spacing:2px; color:#8B2020; border:0.5px solid #8B202044; padding:3px 10px;">{{ strtoupper($post->status) }}</span>
                                 @endif
 
                                 @if($isAdmin || ($isPostOwner && $isPending))
@@ -639,17 +643,17 @@
                                     @if($isAdmin && $isPending)
                                     <form method="POST" action="{{ route('post.approve', $post->id) }}" style="display:inline;">
                                         @csrf
-                                        <button type="submit" style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:#2d7a3a; border:0.5px solid #2d7a3a55; background:transparent; padding:4px 11px; cursor:pointer;">✓ APPROVE</button>
+                                        <button type="submit" style="font-family:var(--font-display); font-size:11px; letter-spacing:1px; color:#2d7a3a; border:0.5px solid #2d7a3a55; background:transparent; padding:4px 11px; cursor:pointer;">✓ APPROVE</button>
                                     </form>
                                     @endif
 
                                     <a href="{{ route('post.edit', $post->id) }}"
-                                       style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:#c8a84b; border:0.5px solid #c8a84b33; background:transparent; padding:4px 11px; text-decoration:none; display:inline-block;">✎ EDIT</a>
+                                       style="font-family:var(--font-display); font-size:11px; letter-spacing:1px; color:#c8a84b; border:0.5px solid #c8a84b33; background:transparent; padding:4px 11px; text-decoration:none; display:inline-block;">✎ EDIT</a>
 
                                     <form method="POST" action="{{ route('post.destroy', $post->id) }}" style="display:inline;"
                                           onsubmit="return confirm('ลบโพสต์นี้?')">
                                         @csrf @method('DELETE')
-                                        <button type="submit" style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:#6b3030; border:0.5px solid #6b303044; background:transparent; padding:4px 11px; cursor:pointer;">✕ DELETE</button>
+                                        <button type="submit" style="font-family:var(--font-display); font-size:11px; letter-spacing:1px; color:#6b3030; border:0.5px solid #6b303044; background:transparent; padding:4px 11px; cursor:pointer;">✕ DELETE</button>
                                     </form>
                                 @endif
                             </div>
@@ -696,15 +700,15 @@
                                     </div>
                                     <div class="grid grid-cols-3 gap-2 pt-2">
                                         <div class="rounded border border-gold/10 bg-black/20 p-2 text-center">
-                                            <div class="archive-label text-[0.6rem]">Level</div>
+                                            <div class="archive-label text-[11px]">Level</div>
                                             <div class="text-gold">{{ $postStats->level ?? 1 }}</div>
                                         </div>
                                         <div class="rounded border border-gold/10 bg-black/20 p-2 text-center">
-                                            <div class="archive-label text-[0.6rem]">Posts</div>
+                                            <div class="archive-label text-[11px]">Posts</div>
                                             <div class="text-gold">{{ $postCharacter?->posts_count ?? '—' }}</div>
                                         </div>
                                         <div class="rounded border border-gold/10 bg-black/20 p-2 text-center">
-                                            <div class="archive-label text-[0.6rem]">Badges</div>
+                                            <div class="archive-label text-[11px]">Badges</div>
                                             <div class="text-gold">{{ $postCharacter?->badges?->count() ?? 0 }}</div>
                                         </div>
                                     </div>
@@ -740,7 +744,7 @@
                                                     <span class="h-0.75 flex-1 overflow-hidden rounded-full bg-[#1e1c18]">
                                                         <span class="block h-full rounded-full" style="width:{{ min(100, max(0, (int) $value)) }}%; background:linear-gradient(90deg, {{ $color }}66, {{ $color }}cc); box-shadow:0 0 4px {{ $color }}55"></span>
                                                     </span>
-                                                    <span class="w-7 text-right font-display text-[0.55rem] text-gold/60">{{ $value }}</span>
+                                                    <span class="w-7 text-right font-display text-[11px] text-gold/60">{{ $value }}</span>
                                                 </div>
                                             @endforeach
                                         </div>
@@ -757,10 +761,10 @@
                                             {{ strtoupper($postCharacter?->custom_frame ?? $postCharacter?->auto_rank ?? 'Wanderer') }}
                                         </span>
                                         <span class="gold-diamond"></span>
-                                        <span class="font-display text-[0.55rem] uppercase tracking-wider text-text-subtle">{{ $postRank }}</span>
+                                        <span class="font-display text-[11px] uppercase tracking-wider text-text-subtle">{{ $postRank }}</span>
                                         <span class="gold-diamond"></span>
-                                        <span class="font-display text-[0.55rem] uppercase tracking-wider" style="color:{{ $postColor }}88;">{{ $postCity?->name ?? '—' }}</span>
-                                        <span class="ml-auto font-display text-[0.52rem] uppercase tracking-wider text-text-subtle">{{ $post->created_at->diffForHumans() }}</span>
+                                        <span class="font-display text-[11px] uppercase tracking-wider" style="color:{{ $postColor }}88;">{{ $postCity?->name ?? '—' }}</span>
+                                        <span class="ml-auto font-display text-[11px] uppercase tracking-wider text-text-subtle">{{ $post->created_at->diffForHumans() }}</span>
                                     </div>
                                 </header>
 
@@ -770,48 +774,16 @@
                                     </div>
                                 </div>
 
-                                {{-- Witness System --}}
-                                @if($post->status === 'approved' && $currentCharacter && $currentCharacter->id !== $post->character_id)
-                                <div style="display:flex; align-items:center; gap:8px; padding:10px 20px; border-top:0.5px solid #c8a84b10;">
-                                    @foreach([
-                                        'witness'  => ['👁', 'Witness',  '#c8a84b'],
-                                        'inspired' => ['✦', 'Inspired', '#7ab0d4'],
-                                        'moved'    => ['♡', 'Moved',    '#c05080'],
-                                    ] as $type => [$icon, $label, $color])
-                                        @php
-                                            $count    = $post->reactions()->where('type', $type)->count();
-                                            $reacted  = $post->hasReactionFrom($currentCharacter->id, $type);
-                                        @endphp
-                                        <form method="POST" action="{{ route('post.react', $post->id) }}" style="display:inline;">
-                                            @csrf
-                                            <input type="hidden" name="type" value="{{ $type }}">
-                                            <button type="submit" style="
-                                                display:inline-flex; align-items:center; gap:5px;
-                                                font-family:var(--font-display); font-size:10px; letter-spacing:1.5px;
-                                                border:0.5px solid {{ $reacted ? $color.'88' : '#c8a84b22' }};
-                                                background:{{ $reacted ? $color.'15' : 'transparent' }};
-                                                color:{{ $reacted ? $color : '#6b6050' }};
-                                                padding:4px 10px; cursor:pointer; transition:.15s ease;
-                                            ">
-                                                <span>{{ $icon }}</span>
-                                                <span>{{ strtoupper($label) }}</span>
-                                                @if($count > 0)<span style="color:{{ $color }}; opacity:.8">{{ $count }}</span>@endif
-                                            </button>
-                                        </form>
-                                    @endforeach
-                                </div>
-                                @endif
-
                                 {{-- Post footer: status badge + council actions --}}
                                 <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 20px; border-top:0.5px solid #c8a84b15;">
                                     {{-- Status badge --}}
                                     <div>
                                         @if($post->status === 'approved')
-                                            <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#2d7a3a; border:0.5px solid #2d7a3a44; padding:3px 10px;">APPROVED</span>
+                                            {{-- Approved is the normal/default state — hidden to reduce badge noise --}}
                                         @elseif($post->status === 'pending')
-                                            <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#c8a84b; border:0.5px solid #c8a84b44; padding:3px 10px;">● PENDING</span>
+                                            <span style="font-family:var(--font-display); font-size:11px; letter-spacing:2px; color:#c8a84b; border:0.5px solid #c8a84b44; padding:3px 10px;">● PENDING</span>
                                         @else
-                                            <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#8B2020; border:0.5px solid #8B202044; padding:3px 10px;">{{ strtoupper($post->status) }}</span>
+                                            <span style="font-family:var(--font-display); font-size:11px; letter-spacing:2px; color:#8B2020; border:0.5px solid #8B202044; padding:3px 10px;">{{ strtoupper($post->status) }}</span>
                                         @endif
                                     </div>
 
@@ -825,20 +797,20 @@
                                         @if($isAdmin && $isPending)
                                         <form method="POST" action="{{ route('post.approve', $post->id) }}" style="display:inline;">
                                             @csrf
-                                            <button type="submit" style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:#2d7a3a; border:0.5px solid #2d7a3a55; background:transparent; padding:4px 11px; cursor:pointer;">✓ APPROVE</button>
+                                            <button type="submit" style="font-family:var(--font-display); font-size:11px; letter-spacing:1px; color:#2d7a3a; border:0.5px solid #2d7a3a55; background:transparent; padding:4px 11px; cursor:pointer;">✓ APPROVE</button>
                                         </form>
                                         @endif
 
                                         @if($isAdmin || ($isPostOwner && $isPending))
                                         <a href="{{ route('post.edit', $post->id) }}"
-                                           style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:#c8a84b; border:0.5px solid #c8a84b33; background:transparent; padding:4px 11px; text-decoration:none; display:inline-block;">✎ EDIT</a>
+                                           style="font-family:var(--font-display); font-size:11px; letter-spacing:1px; color:#c8a84b; border:0.5px solid #c8a84b33; background:transparent; padding:4px 11px; text-decoration:none; display:inline-block;">✎ EDIT</a>
                                         @endif
 
                                         @if($isAdmin || ($isPostOwner && $isPending))
                                         <form method="POST" action="{{ route('post.destroy', $post->id) }}" style="display:inline;"
                                               onsubmit="return confirm('ลบโพสต์นี้?')">
                                             @csrf @method('DELETE')
-                                            <button type="submit" style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:#6b3030; border:0.5px solid #6b303044; background:transparent; padding:4px 11px; cursor:pointer;">✕ DELETE</button>
+                                            <button type="submit" style="font-family:var(--font-display); font-size:11px; letter-spacing:1px; color:#6b3030; border:0.5px solid #6b303044; background:transparent; padding:4px 11px; cursor:pointer;">✕ DELETE</button>
                                         </form>
                                         @endif
                                     </div>
@@ -882,8 +854,8 @@
                 @if($writeBlocked && ! $replyBlocked)
                     {{-- City write gate banner --}}
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px">
-                        <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2.5px; color:#c8a84b; border:0.5px solid #c8a84b55; padding:3px 10px">ZONE RESTRICTION</span>
-                        <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#6b6050">พื้นที่จำกัดการเขียน</span>
+                        <span style="font-family:var(--font-display); font-size:11px; letter-spacing:2.5px; color:#c8a84b; border:0.5px solid #c8a84b55; padding:3px 10px">ZONE RESTRICTION</span>
+                        <span style="font-family:var(--font-display); font-size:11px; letter-spacing:2px; color:#6b6050">พื้นที่จำกัดการเขียน</span>
                     </div>
                     <p style="color:#c4b898; font-size:14px">
                         พื้นที่นี้กำหนดให้เขียนได้เฉพาะผู้ที่ผ่านเกณฑ์ที่กำหนดเท่านั้น
@@ -894,8 +866,8 @@
                 @else
                     {{-- Onboarding gate banner --}}
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px">
-                        <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2.5px; color:#c8a84b; border:0.5px solid #c8a84b55; padding:3px 10px">ONBOARDING</span>
-                        <span style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:#6b6050">ระบบนำทางผู้เล่นใหม่</span>
+                        <span style="font-family:var(--font-display); font-size:11px; letter-spacing:2.5px; color:#c8a84b; border:0.5px solid #c8a84b55; padding:3px 10px">ONBOARDING</span>
+                        <span style="font-family:var(--font-display); font-size:11px; letter-spacing:2px; color:#6b6050">ระบบนำทางผู้เล่นใหม่</span>
                     </div>
                     <p style="color:#c4b898; font-size:14px; margin-bottom:10px">
                         คุณยังไม่ผ่าน Onboarding — ทำแบบทดสอบ 3 ด่านให้เสร็จก่อนจึงจะเขียนโพสต์ได้
@@ -939,11 +911,11 @@
                         </span>
                         <div>
                             <h3 class="font-decorative text-[0.95rem] tracking-wider text-gold">Continue the Tale</h3>
-                            <p class="font-display text-[0.5rem] uppercase tracking-wider text-text-subtle">Write your reply in character</p>
+                            <p class="font-display text-[11px] uppercase tracking-wider text-text-subtle">Write your reply in character</p>
                         </div>
                     </div>
                     <div class="inline-flex items-center gap-2 border border-gold/20 bg-gold/5 px-3 py-1.5 text-xs text-gold/75">
-                        <span class="font-display text-[0.55rem] uppercase tracking-wider">Posting as</span>
+                        <span class="font-display text-[11px] uppercase tracking-wider">Posting as</span>
                         <span class="font-display text-gold">{{ $currentCharacter->name }}</span>
                     </div>
                 </div>
@@ -975,13 +947,19 @@
                                 <button class="ql-underline" title="ขีดเส้นใต้ (Ctrl+U)"></button>
                                 <button class="ql-strike" title="ขีดทับ"></button>
                             </span>
-                            {{-- Heading / blockquote / code --}}
+                            {{-- Font size / blockquote / code --}}
                             <span class="ql-formats">
-                                <select class="ql-header" title="ขนาดหัวข้อ">
-                                    <option value="1">หัวข้อ 1</option>
-                                    <option value="2">หัวข้อ 2</option>
-                                    <option value="3">หัวข้อ 3</option>
-                                    <option selected value="">ปกติ</option>
+                                <select class="ql-size" title="ขนาดตัวอักษร">
+                                    <option value="12px">12px</option>
+                                    <option value="14px">14px</option>
+                                    <option value="16px">16px</option>
+                                    <option selected value="">18px (ปกติ)</option>
+                                    <option value="20px">20px</option>
+                                    <option value="24px">24px</option>
+                                    <option value="28px">28px</option>
+                                    <option value="32px">32px</option>
+                                    <option value="40px">40px</option>
+                                    <option value="48px">48px</option>
                                 </select>
                                 <button class="ql-blockquote" title="บล็อกคำพูด"></button>
                                 <button class="ql-code-block" title="บล็อกโค้ด"></button>
@@ -1478,12 +1456,22 @@ function registerIndentRightFormat() {
     Quill.register({ 'formats/indentright': IndentRight }, true);
 }
 
+// Explicit px sizes on selected text (Quill's built-in style-based size
+// attributor sets inline font-size directly, no matching CSS class needed
+// per value) instead of the semantic H1/H2/H3 header dropdown.
+function registerSizeFormat() {
+    var SizeStyle = Quill.import('attributors/style/size');
+    SizeStyle.whitelist = ['12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '40px', '48px'];
+    Quill.register(SizeStyle, true);
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const Font = Quill.import('formats/font');
     Font.whitelist = ['sarabun','prompt','kanit','noto-serif-thai','mitr','charm','trirong','monospace'];
     Quill.register(Font, true);
     registerDropCapFormat();
     registerIndentRightFormat();
+    registerSizeFormat();
 
     const quill = new Quill('#thread-editor', {
         modules: {

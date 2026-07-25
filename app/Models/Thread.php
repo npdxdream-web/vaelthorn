@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Thread extends Model
 {
@@ -13,6 +14,7 @@ class Thread extends Model
         'event_id',
         'created_by',
         'title',
+        'banner_image',
         'location_label',
         'status',
         'moderation_message',
@@ -92,5 +94,10 @@ class Thread extends Model
     public function approvedPostsCount(): int
     {
         return $this->posts()->where('status', 'approved')->count();
+    }
+
+    public function getBannerImageUrlAttribute(): ?string
+    {
+        return $this->banner_image ? Storage::disk('public')->url($this->banner_image) : null;
     }
 }

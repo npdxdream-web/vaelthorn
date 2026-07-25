@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\City;
 use App\Models\Notification;
 use App\Models\Post;
-use App\Models\PostReaction;
 use App\Models\Thread;
 use App\Models\User;
 use App\Services\LevelingService;
@@ -99,7 +98,12 @@ class ThreadController extends Controller
             return redirect()->route('city', $city->id)->with('error', 'คุณไม่มีสิทธิ์เขียนในพื้นที่นี้');
         }
 
-        return view('thread-create', compact('city'));
+        // This post will always be the thread's first post — same "lore post"
+        // condition as thread.blade.php ($loop->first + admin author), simplified
+        // since there's no existing post to check against yet.
+        $isLorePost = $user->isAtLeastAdmin();
+
+        return view('thread-create', compact('city', 'isLorePost'));
     }
 
     public function storeThread(Request $request, $cityId)
@@ -123,9 +127,10 @@ class ThreadController extends Controller
         }
 
         $request->validate([
-            'title'   => 'required|string|max:255',
-            'content' => 'required|string|min:1',
-            'action'  => 'in:draft,submit',
+            'title'        => 'required|string|max:255',
+            'content'      => 'required|string|min:1',
+            'action'       => 'in:draft,submit',
+            'banner_image' => 'nullable|image|mimes:jpeg,png,webp|max:3072',
         ]);
 
         $isLivePost = ($stats?->level >= 1) && ! $city->require_approval;
@@ -135,11 +140,16 @@ class ThreadController extends Controller
             ? 'approved'
             : ($request->input('action') === 'draft' ? 'draft' : 'pending');
 
+        $bannerPath = $request->hasFile('banner_image')
+            ? $request->file('banner_image')->store('threads', 'public')
+            : null;
+
         $thread = Thread::create([
-            'city_id'    => $city->id,
-            'created_by' => $user->id,
-            'title'      => $request->input('title'),
-            'status'     => $threadStatus,
+            'city_id'      => $city->id,
+            'created_by'   => $user->id,
+            'title'        => $request->input('title'),
+            'banner_image' => $bannerPath,
+            'status'       => $threadStatus,
         ]);
 
         $post = Post::create([
@@ -196,12 +206,17 @@ class ThreadController extends Controller
         $request->validate([
             'title'          => 'required|string|max:255',
             'location_label' => 'nullable|string|max:100',
+            'banner_image'   => 'nullable|image|mimes:jpeg,png,webp|max:3072',
         ]);
 
         $data = [
             'title'          => $request->input('title'),
             'location_label' => $request->input('location_label'),
         ];
+
+        if ($request->hasFile('banner_image')) {
+            $data['banner_image'] = $request->file('banner_image')->store('threads', 'public');
+        }
 
         if ($user->isAdminGroup()) {
             if ($request->filled('city_id')) {
@@ -322,7 +337,7 @@ class ThreadController extends Controller
 
     public function editPost($id)
     {
-        $post = Post::with(['thread', 'character'])->findOrFail($id);
+        $post = Post::with(['thread', 'character.user'])->findOrFail($id);
         $user = Auth::user();
 
         if (! $user->isAdminGroup()) {
@@ -334,7 +349,15 @@ class ThreadController extends Controller
             }
         }
 
-        return view('post-edit', compact('post'));
+        // Same "lore post" condition as thread.blade.php ($loop->first + admin author) —
+        // the editor/preview need to match this so what the author sees while editing
+        // isn't a different size than what actually renders on the thread.
+        $firstPostId = Post::where('thread_id', $post->thread_id)
+            ->oldest()->oldest('id')
+            ->value('id');
+        $isLorePost = $firstPostId === $post->id && optional($post->character->user)->isAtLeastAdmin();
+
+        return view('post-edit', compact('post', 'isLorePost'));
     }
 
     public function updatePost(Request $request, $id)
@@ -381,47 +404,6 @@ class ThreadController extends Controller
         }
 
         return redirect()->route('thread', $threadId)->with('success', 'ลบโพสต์แล้ว');
-    }
-
-    // ─── Witness System ───────────────────────────────────────────────────────
-
-    public function reactPost(Request $request, $id)
-    {
-        $post      = Post::findOrFail($id);
-        $character = Auth::user()->character;
-
-        if (! $character) {
-            return back()->with('error', 'กรุณาสร้างตัวละครก่อน');
-        }
-        if ($post->character_id === $character->id) {
-            return back()->with('error', 'ไม่สามารถ Witness โพสต์ของตัวเองได้');
-        }
-        if ($post->status !== 'approved') {
-            return back()->with('error', 'โพสต์ยังไม่ได้รับการอนุมัติ');
-        }
-
-        $allowed = ['witness', 'inspired', 'moved'];
-        $type    = $request->input('type', 'witness');
-        if (! in_array($type, $allowed, true)) {
-            abort(422);
-        }
-
-        $existing = PostReaction::where('post_id', $post->id)
-            ->where('character_id', $character->id)
-            ->where('type', $type)
-            ->first();
-
-        if ($existing) {
-            $existing->delete();
-        } else {
-            PostReaction::create([
-                'post_id'      => $post->id,
-                'character_id' => $character->id,
-                'type'         => $type,
-            ]);
-        }
-
-        return back();
     }
 
     // ─── Blade: reply store ────────────────────────────────────────────────────

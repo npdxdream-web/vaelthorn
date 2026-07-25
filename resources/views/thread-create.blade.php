@@ -37,9 +37,31 @@
         .ql-picker.ql-font .ql-picker-item[data-value="trirong"]         { font-family:'Trirong',serif; }
         .ql-picker.ql-font .ql-picker-item[data-value="monospace"]       { font-family:monospace; }
 
-        /* ── Preview pane: mirrors thread.blade.php's .thread-reading
-               overrides so Quill's .ql-editor-scoped align/indent/heading
-               rules (which the preview div doesn't carry) still apply. ── */
+        /* ── Editor + preview must both match thread.blade.php's actual
+               render size exactly — otherwise what the author sees while
+               editing (or in the preview toggle) is a different size than
+               what actually shows on the thread. .ql-editor inherits from
+               its .thread-reading/.lore-post-body ancestor since Quill's
+               own CSS doesn't set a conflicting font-size to override. ── */
+        .thread-reading {
+            font-size: 18px !important;
+            line-height: 1.9 !important;
+        }
+        .thread-reading .ql-editor {
+            font-size: inherit !important;
+            line-height: inherit !important;
+            font-family: inherit !important;
+            color: inherit !important;
+        }
+        .lore-post-body.thread-reading {
+            font-family: var(--font-chronicle);
+            font-size: 18px !important;
+            line-height: 2 !important;
+            color: #d8d1bd;
+        }
+        .lore-post-body p {
+            margin-bottom: 1.4em;
+        }
         .thread-reading .ql-align-center  { text-align:center; }
         .thread-reading .ql-align-right   { text-align:right; }
         .thread-reading .ql-align-justify { text-align:justify; }
@@ -67,17 +89,21 @@
         .thread-reading h6 { font-size:.67em; }
 
         /* ── Drop cap: user-applied via the "Drop Cap" toolbar button ───── */
+        /* Fixed to exactly 2 body-text line-boxes tall (18px font-size × line-height
+           2 = 36px per line, ×2 = 72px) rather than a bare font-size — Thai vowel/tone
+           marks (e.g. the ่ in "ที่") add height above/below the base glyph without
+           changing its declared font-size, so pinning only font-size let some letters
+           render taller than others and look unaligned ("floating"). Locking line-height
+           to the 2-line box and keeping font-size well under it gives every glyph the
+           same headroom for combining marks, so the wrap is always symmetric. */
         .drop-cap {
             float: left;
             font-family: var(--font-decorative);
-            font-size: 38px;
-            line-height: 0.85;
+            font-size: 58px;
+            line-height: 72px;
             color: #d4af37;
             font-weight: 700;
-            padding: 6px 8px 0 0;
-        }
-        @media (max-width: 639px) {
-            .drop-cap { font-size: 32px; }
+            padding: 0 8px 0 0;
         }
 
         /* ── Color picker ───────────────────────────────────────── */
@@ -129,7 +155,7 @@
         <h1 class="font-display mb-1 text-2xl text-gold">Start a New Tale</h1>
         <p class="mb-6 text-sm text-text-muted">ใน {{ $city->name }} — กระทู้จะรอ Admin อนุมัติก่อนเผยแพร่</p>
 
-        <form method="POST" action="{{ route('thread.store', $city->id) }}" id="create-thread-form">
+        <form method="POST" action="{{ route('thread.store', $city->id) }}" id="create-thread-form" enctype="multipart/form-data">
             @csrf
             <input type="hidden" name="action" id="form-action" value="submit">
             <input type="hidden" name="content" id="create-content-input">
@@ -141,6 +167,17 @@
                        placeholder="ชื่อเรื่อง / ฉากที่…"
                        class="w-full rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-4 py-2 text-[#e8e6e3] placeholder:text-[#686664] focus:border-[#D4AF37] focus:outline-none">
                 @error('title')
+                    <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Banner image (optional) --}}
+            <div class="mb-4">
+                <label for="banner_image" class="mb-1 block text-sm text-text-muted">ภาพแบนเนอร์กระทู้ (ไม่บังคับ)</label>
+                <input type="file" name="banner_image" id="banner_image" accept="image/jpeg,image/png,image/webp"
+                       class="w-full rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-4 py-2 text-sm text-[#e8e6e3] file:mr-3 file:rounded-md file:border-0 file:bg-[#D4AF37] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#0f0f0f] hover:file:bg-[#B8941F] focus:border-[#D4AF37] focus:outline-none">
+                <p class="mt-1 text-xs text-[#686664]">รองรับ JPG, PNG, WEBP ขนาดไม่เกิน 3MB — จะแสดงเป็นพื้นหลังด้านบนหัวกระทู้</p>
+                @error('banner_image')
                     <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
                 @enderror
             </div>
@@ -170,11 +207,17 @@
                         <button class="ql-strike" title="ขีดทับ"></button>
                     </span>
                     <span class="ql-formats">
-                        <select class="ql-header" title="ขนาดหัวข้อ">
-                            <option value="1">หัวข้อ 1</option>
-                            <option value="2">หัวข้อ 2</option>
-                            <option value="3">หัวข้อ 3</option>
-                            <option selected value="">ปกติ</option>
+                        <select class="ql-size" title="ขนาดตัวอักษร">
+                            <option value="12px">12px</option>
+                            <option value="14px">14px</option>
+                            <option value="16px">16px</option>
+                            <option selected value="">18px (ปกติ)</option>
+                            <option value="20px">20px</option>
+                            <option value="24px">24px</option>
+                            <option value="28px">28px</option>
+                            <option value="32px">32px</option>
+                            <option value="40px">40px</option>
+                            <option value="48px">48px</option>
                         </select>
                         <button class="ql-blockquote" title="บล็อกคำพูด"></button>
                     </span>
@@ -214,8 +257,8 @@
                         </div>
                     </span>
                 </div>
-                <div id="create-editor" class="min-h-[260px] p-4 text-[#e8e6e3]"></div>
-                <div id="create-content-preview" class="thread-reading prose prose-invert max-w-none hidden p-4"></div>
+                <div id="create-editor" class="thread-reading {{ $isLorePost ? 'lore-post-body' : '' }} min-h-[260px] p-4 text-[#e8e6e3]"></div>
+                <div id="create-content-preview" class="thread-reading {{ $isLorePost ? 'lore-post-body' : '' }} prose prose-invert max-w-none hidden p-4"></div>
 
                 @error('content')
                     <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
@@ -485,12 +528,22 @@ function registerIndentRightFormat() {
     Quill.register({ 'formats/indentright': IndentRight }, true);
 }
 
+// Explicit px sizes on selected text (Quill's built-in style-based size
+// attributor sets inline font-size directly, no matching CSS class needed
+// per value) instead of the semantic H1/H2/H3 header dropdown.
+function registerSizeFormat() {
+    var SizeStyle = Quill.import('attributors/style/size');
+    SizeStyle.whitelist = ['12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '40px', '48px'];
+    Quill.register(SizeStyle, true);
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const Font = Quill.import('formats/font');
     Font.whitelist = ['sarabun','prompt','kanit','noto-serif-thai','mitr','charm','trirong','monospace'];
     Quill.register(Font, true);
     registerDropCapFormat();
     registerIndentRightFormat();
+    registerSizeFormat();
 
     const quill = new Quill('#create-editor', {
         modules: {

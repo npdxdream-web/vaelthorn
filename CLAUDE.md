@@ -111,7 +111,7 @@ Admin panel (`/admin`) uses a **separate session cookie** (`vaelthorn_admin_sess
 |---|---|
 | `threads` | RP story threads. Fields: id, city_id (was village_id), event_id, title, exp_override (nullable, explicit per-thread EXP override — see `LevelingService::resolveExpAmount`), status (open/pending/rejected/locked/archived), created_by, timestamps |
 | `posts` | RP posts. Fields: id, thread_id, character_id, content, status (pending/approved), timestamps |
-| `post_reactions` | Witness System reactions. Fields: id, post_id, character_id, type, timestamps |
+| `post_reactions` | **Removed 2026-07-25** — Witness System UI/route/controller action pulled from the product; table + `Post`/`PostReaction` model relations left in place but unused. Fields: id, post_id, character_id, type, timestamps |
 
 #### Economy
 | Table | Description |
@@ -211,8 +211,8 @@ Pure 3-essay review, no in-game posting requirement. `character_stats.stage_1/2/
 ### Soft class system
 Players allocate stat points on level-up. Stat thresholds + items gate event eligibility via `event_requirements`. No hard class selection — path emerges from stat choices (e.g. high Mana → mage path, high AGI → assassin path).
 
-### Witness System
-`post_reactions` table powers the emotional core: at least one person witnesses and reflects back a character's growth. This is what makes players feel "seen."
+### Witness System (removed 2026-07-25)
+Was: `post_reactions` table powering "at least one person witnesses and reflects back a character's growth." The UI (Witness/Inspired/Moved buttons on posts), the `post.react` route, and `ThreadController::reactPost()` have been removed at the owner's request. The `post_reactions` table and `Post`/`PostReaction` model relationships (`reactions()`, `hasReactionFrom()`) were left in place — dead code, not wired to any route — in case of a future revival.
 
 ### 5 Kingdoms
 | Kingdom | Capital (City) | Identity |
