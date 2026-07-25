@@ -90,15 +90,14 @@
 
             {{-- Banner image (optional) --}}
             <div class="mb-4">
-                <label for="banner_image" class="mb-1 block text-sm text-text-muted">ลิงก์ภาพแบนเนอร์กระทู้ (ไม่บังคับ)</label>
+                <label for="banner_image" class="mb-1 block text-sm text-text-muted">ภาพแบนเนอร์กระทู้ (ไม่บังคับ)</label>
                 @if($thread->banner_image)
                     <img src="{{ $thread->banner_image_url }}" alt="แบนเนอร์ปัจจุบัน"
                          class="mb-2 h-24 w-full rounded-lg object-cover border border-[#2a2a2a]">
                 @endif
-                <input type="url" name="banner_image" id="banner_image" value="{{ old('banner_image', $thread->banner_image) }}"
-                       placeholder="https://i.ibb.co/xxxxxxx/banner.jpg"
-                       class="w-full rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-4 py-2 text-sm text-[#e8e6e3] focus:border-[#D4AF37] focus:outline-none">
-                <p class="mt-1 text-xs text-[#686664]">วางลิงก์รูปภาพที่อัปโหลดไว้ที่เว็บฝากรูป (เช่น imgur.com, ibb.co) — ล้างช่องนี้แล้วบันทึกเพื่อลบแบนเนอร์</p>
+                <input type="file" name="banner_image" id="banner_image" accept="image/jpeg,image/png,image/webp"
+                       class="w-full rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-4 py-2 text-sm text-[#e8e6e3] file:mr-3 file:rounded-md file:border-0 file:bg-[#D4AF37] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#0f0f0f] hover:file:bg-[#B8941F] focus:border-[#D4AF37] focus:outline-none">
+                <p class="mt-1 text-xs text-[#686664]">รองรับ JPG, PNG, WEBP ขนาดไม่เกิน 3MB — อัปโหลดใหม่เพื่อแทนที่รูปเดิม{{ $thread->banner_image ? '' : ' จะแสดงเป็นพื้นหลังด้านบนหัวกระทู้' }}</p>
                 @error('banner_image')
                     <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
                 @enderror

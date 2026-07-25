@@ -130,7 +130,7 @@ class ThreadController extends Controller
             'title'        => 'required|string|max:255',
             'content'      => 'required|string|min:1',
             'action'       => 'in:draft,submit',
-            'banner_image' => 'nullable|url|max:500',
+            'banner_image' => 'nullable|image|mimes:jpeg,png,webp|max:3072',
         ]);
 
         $isLivePost = ($stats?->level >= 1) && ! $city->require_approval;
@@ -140,11 +140,15 @@ class ThreadController extends Controller
             ? 'approved'
             : ($request->input('action') === 'draft' ? 'draft' : 'pending');
 
+        $bannerPath = $request->hasFile('banner_image')
+            ? $request->file('banner_image')->store('threads', 'public')
+            : null;
+
         $thread = Thread::create([
             'city_id'      => $city->id,
             'created_by'   => $user->id,
             'title'        => $request->input('title'),
-            'banner_image' => $request->input('banner_image'),
+            'banner_image' => $bannerPath,
             'status'       => $threadStatus,
         ]);
 
@@ -202,14 +206,17 @@ class ThreadController extends Controller
         $request->validate([
             'title'          => 'required|string|max:255',
             'location_label' => 'nullable|string|max:100',
-            'banner_image'   => 'nullable|url|max:500',
+            'banner_image'   => 'nullable|image|mimes:jpeg,png,webp|max:3072',
         ]);
 
         $data = [
             'title'          => $request->input('title'),
             'location_label' => $request->input('location_label'),
-            'banner_image'   => $request->input('banner_image'),
         ];
+
+        if ($request->hasFile('banner_image')) {
+            $data['banner_image'] = $request->file('banner_image')->store('threads', 'public');
+        }
 
         if ($user->isAdminGroup()) {
             if ($request->filled('city_id')) {
