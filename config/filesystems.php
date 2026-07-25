@@ -40,7 +40,7 @@ return [
 
         // Application code (avatar uploads, World Chronicle cover images) always writes to
         // the "public" disk by name. Locally that's the local disk served via `storage:link`;
-        // on Laravel Cloud (AWS_BUCKET set) it transparently becomes the Cloudflare R2 bucket,
+        // on Laravel Cloud (AWS_BUCKET set) it transparently becomes the Laravel Cloud Object Storage bucket,
         // so uploads don't land on the container's local/ephemeral filesystem in production.
         'public' => env('AWS_BUCKET') ? [
             'driver' => 's3',
@@ -63,8 +63,8 @@ return [
             'report' => false,
         ],
 
-        // Cloudflare R2 (S3-compatible) — same disk the "public" disk above maps onto
-        // when AWS_BUCKET is set; kept as a named disk for direct ->disk('s3') use.
+        // Laravel Cloud Object Storage (S3-compatible) — same disk the "public" disk above
+        // maps onto when AWS_BUCKET is set; kept as a named disk for direct ->disk('s3') use.
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
