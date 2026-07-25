@@ -297,3 +297,46 @@ Owner bought a custom domain and a Laravel Cloud subscription, pushed the prior 
 - Verified: `artisan tinker` confirms `public` disk resolves to `s3`/R2 when `AWS_BUCKET` is set, and back to `local` when it's blank; `php artisan test` still 11/11 after the config change.
 - **Still needed before storage actually works on Laravel Cloud**: paste the real `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` (R2 API token) and the bucket's public URL into the Laravel Cloud dashboard's Environment tab — `.env.cloud.example` is a copy-paste template, not consumed automatically.
 - Domain: purchased, but no code/config in this repo references it yet — `APP_URL` in `.env.cloud.example` is still a `[FILL]` placeholder pointing at the domain once DNS/Cloud routing is set up.
+
+---
+
+## Update 2026-07-26 — storage corrected to Laravel Cloud Object Storage, two deploy-blocking bugs fixed, onboarding approve/reject redesigned, **first real deploy attempt hit a wall**
+
+Owner clarified they have **no Cloudflare R2 account** — the prior session's R2 setup was a mistaken guess about what "the AWS_* values" referred to. Then attempted (and is still attempting) the first real Laravel Cloud deploy; hit a chain of build/runtime failures fixed one at a time, then a real onboarding-flow bug report from live testing, and finally discovered the deploy pipeline itself isn't updating production at all. Commits `affecd0` through `43d4073`.
+
+### Fixed: storage config corrected (`affecd0`, `517b692`)
+- `.env.cloud.example`'s hardcoded R2 bucket ID/region/endpoint were **not real** — replaced with blank `AWS_*` values + a comment explaining Laravel Cloud's built-in Object Storage auto-populates these once a bucket is created in the dashboard's Storage panel. Nothing to fill in by hand.
+- Two stray "Cloudflare R2" comments left behind in `config/filesystems.php` (disk logic itself was already correct — comment-only fix).
+
+### Fixed: two deploy-blocking build failures (`c52b766`, `8ee49f4`)
+- **Missing package**: Laravel Cloud refused to deploy with *"attached bucket but missing [league/flysystem-aws-s3-v3]"* — the `s3` disk driver was configured but the Flysystem adapter was never `composer require`d. Added it (^3.35).
+- **npm ERESOLVE**: `@tailwindcss/vite@4.1.12` only accepted `vite ^5-7`, but the project pins `vite ^8`. Bumped `@tailwindcss/vite` + `tailwindcss` to 4.3.3 (added Vite 8 support in 4.3.0) rather than downgrading Vite — `@vitejs/plugin-react`/`laravel-vite-plugin` already required `vite ^8` even before the bump, so they weren't the cause. Regenerated `package-lock.json` from a clean install, verified `npm ci` + `npm run build` both succeed.
+
+### Fixed: two real onboarding-flow bugs found via live testing (`5146449`, `6b6fac4`)
+- **Kingdom pre-assignment bug**: `UserResource` (the page admins actually use to approve characters — `CharacterResource` isn't in the nav) had `kingdom_id` marked `->required()`. Approving = flipping status to active + hitting Save on that same form, so the admin was forced to pre-pick a Kingdom every time, silently overriding the player's own `/choose-kingdom` choice. Fixed by dropping `->required()`.
+- **Stuck-on-"approved" bug**: `UserResource`'s status dropdown offered "Approved" as an option, but the app only ever checked for literal `status === 'active'` — picking the naturally-labeled "Approved" choice (there was no dedicated Approve button at the time) left characters stuck on the onboarding wait screen forever. Confirmed live: 2 local characters + the reported `test1` production account were stuck this way. Data migration flipped existing `'approved'` rows to `'active'`; dropdown temporarily trimmed to pending/active/rejected only (superseded by the redesign below, which brings `'approved'` back with real meaning).
+
+### Redesigned: proper Approved→Active state machine + per-stage Reject (`e25a6c5` unrelated Kingdom-reorder work, then `43d4073`)
+Owner clarified the *intended* design during live testing: Approve should not jump straight to "Active" — it should force the player through kingdom choice first, only becoming Active once they actually pick one. Separately, Reject turned out to be **completely non-functional** in daily use: `UserResource` had no Approve/Reject actions at all, just the inert status dropdown — picking "Rejected" didn't delete entries, reset stages, or notify the player. The real logic only existed on `CharacterResource`, which nobody sees.
+- New state machine: `pending` → `approved` (forced to `/choose-kingdom`, not yet playable) → `active` (set automatically, only by `KingdomSelectionController::store()`, the instant a kingdom is chosen).
+- Both `UserResource` and `CharacterResource` now have real Approve/Reject row actions, sharing `CharacterResource::approveCharacter()`/`rejectCharacter()`/`rejectFormSchema()`/`handleRejectSubmit()`.
+- Reject is now **per-stage**: admin picks which specific stage(s) failed (only stages actually submitted are offered) with a **separate reason each** — new `character_stats.stage_1/2/3_rejection_reason` columns replace the old single shared `rejection_reason`. Resubmitting a stage clears only that stage's own reason.
+- `/onboarding` shows each stage's rejection reason as a bubble on that stage's own card, not one generic top banner.
+- Raw status Select kept on `UserResource` as a manual-override escape hatch, per explicit request, alongside the new buttons.
+- (Separately, same batch: Kingdoms admin list got drag-to-reorder (`sort_order` column) and "closed" (`is_active=false`) now hard-blocks city entry for regular players — 404, not just hidden from the picker — even for their own home kingdom or an active travel permit. Flagged limitation: direct thread URLs aren't independently kingdom-gated anywhere in the app, closed or not — pre-existing, not addressed.)
+
+All of the above: `php artisan test` 11/11 passing throughout (72 assertions after the last change), verified via `tinker` at each step (schema checks, per-stage reject only touching selected stages, resubmission clearing the right reason, view rendering with the new bubble markup).
+
+### 🔴 Unresolved, blocking: production is not running any of this session's code
+Owner reported a live bug (character stuck on the "awaiting review" onboarding screen despite admin setting status to "Approved" in the dashboard) that should have been fixed by `43d4073`. Investigation found:
+- `php artisan migrate:status` on production stops at `2026_07_25_010000_add_banner_image_to_threads_table` — **none** of today's 3 migrations have run.
+- A direct code check (`str_contains(file_get_contents(...OnboardingController.php...), 'isApprovedOrActive')`) confirmed **the PHP code itself is still the old pre-session version** — not just a missed migration. Laravel Cloud has not deployed any commit from this entire session, including the earlier storage/package/npm fixes.
+- Root cause not yet identified — owner was asked to check the Laravel Cloud dashboard's Deployments/Activity tab for the latest deploy's status (Success/Failed) and whether auto-deploy-on-push is enabled for `main`, but hasn't reported back yet.
+- **This blocks everything else**: none of this session's fixes (storage, onboarding flow, Kingdom reorder, etc.) are actually live regardless of how correct the code is locally.
+- Domain: owner asked if the purchased domain can be used yet — answered informationally (needs: add domain in Laravel Cloud's Domains section, point DNS per its instructions, update `APP_URL`), but flagged that testing the domain right now would just surface the same stale-code symptoms, so resolving the deploy pipeline should come first.
+
+### Suggested next steps (if picked up cold)
+1. **Highest priority**: resolve why Laravel Cloud isn't deploying pushed commits — check the dashboard's Deployments/Activity tab for the latest attempt's status and error log first; if nothing shows, check whether the GitHub webhook/auto-deploy-on-push setting is still connected.
+2. Once a real deploy succeeds, run `php artisan migrate --force` to catch up all pending migrations (currently 3 behind).
+3. Re-verify the `test1`/`Test Test`-style stuck-onboarding scenario against production once code + migrations are actually current — should self-resolve once deployed, no manual DB fix needed thanks to the `2026_07_26_000000` data migration.
+4. Domain: only worth testing after the deploy pipeline is confirmed working, to avoid confusing "domain not set up" with "still running old code."
