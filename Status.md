@@ -284,3 +284,16 @@ Long multi-part session. Grouped by theme; commits are `6419fdc`, `3faae36`, `a4
 3. Decide the character-status cleanup (collapse to 2-3 states) — the `approved`+`kingdom_id` stuck-character bug found during the audit is a real, if minor, live issue worth fixing regardless of the larger cleanup's timing.
 4. Resolve the `users.email` uniqueness question one way or the other — currently silently allows duplicates with no validation anywhere.
 5. Push local commits to `origin/main` once the above (or whatever's judged ready) is settled — nothing here is blocking that, it's just been sequenced after in case the owner wants to review history before publishing.
+
+---
+
+## Update 2026-07-25 (later same day) — domain + Laravel Cloud purchased; storage switched Tigris → Cloudflare R2
+
+Owner bought a custom domain and a Laravel Cloud subscription, pushed the prior session's commits to `origin/main`, then provided real Cloudflare R2 credentials (bucket, region, endpoint — access key/secret still separate) to wire up as the production file storage, replacing the previously-planned Tigris.
+
+- `config/filesystems.php`: `public` disk's cloud-vs-local switch now keys off `AWS_BUCKET` (was `TIGRIS_BUCKET`); it and the existing `s3` disk both read the standard `AWS_*` env vars pointing at the R2 endpoint. The dedicated `tigris` disk definition was removed as dead weight (nothing referenced it by name — app code always uses `->disk('public')`).
+- `.env.example` / `.env.cloud.example`: `TIGRIS_*` blocks replaced with `AWS_*`. `.env.cloud.example` now has the real R2 bucket ID/region/endpoint pre-filled (not secret on their own — no access key/secret in them) with `[FILL]` left only for the actual R2 API token and public bucket URL.
+- Local `.env` deliberately does **not** have `AWS_BUCKET` filled in — filling it would flip local dev's `public` disk over to S3 too (the check is a plain truthy env check), and no access key/secret were provided for local testing, so local avatar/banner uploads would silently break. Local dev stays on the `local` disk; the real R2 values live only in the Cloud template/dashboard.
+- Verified: `artisan tinker` confirms `public` disk resolves to `s3`/R2 when `AWS_BUCKET` is set, and back to `local` when it's blank; `php artisan test` still 11/11 after the config change.
+- **Still needed before storage actually works on Laravel Cloud**: paste the real `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` (R2 API token) and the bucket's public URL into the Laravel Cloud dashboard's Environment tab — `.env.cloud.example` is a copy-paste template, not consumed automatically.
+- Domain: purchased, but no code/config in this repo references it yet — `APP_URL` in `.env.cloud.example` is still a `[FILL]` placeholder pointing at the domain once DNS/Cloud routing is set up.

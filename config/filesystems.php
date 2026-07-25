@@ -40,17 +40,17 @@ return [
 
         // Application code (avatar uploads, World Chronicle cover images) always writes to
         // the "public" disk by name. Locally that's the local disk served via `storage:link`;
-        // on Laravel Cloud (TIGRIS_BUCKET set) it transparently becomes the Tigris bucket, so
-        // uploads don't land on the container's local/ephemeral filesystem in production.
-        'public' => env('TIGRIS_BUCKET') ? [
+        // on Laravel Cloud (AWS_BUCKET set) it transparently becomes the Cloudflare R2 bucket,
+        // so uploads don't land on the container's local/ephemeral filesystem in production.
+        'public' => env('AWS_BUCKET') ? [
             'driver' => 's3',
-            'key' => env('TIGRIS_ACCESS_KEY_ID'),
-            'secret' => env('TIGRIS_SECRET_ACCESS_KEY'),
-            'region' => env('TIGRIS_REGION', 'auto'),
-            'bucket' => env('TIGRIS_BUCKET'),
-            'url' => env('TIGRIS_URL'),
-            'endpoint' => env('TIGRIS_ENDPOINT', 'https://fly.storage.tigris.dev'),
-            'use_path_style_endpoint' => false,
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION', 'auto'),
+            'bucket' => env('AWS_BUCKET'),
+            'url' => env('AWS_URL'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
@@ -63,29 +63,17 @@ return [
             'report' => false,
         ],
 
+        // Cloudflare R2 (S3-compatible) — same disk the "public" disk above maps onto
+        // when AWS_BUCKET is set; kept as a named disk for direct ->disk('s3') use.
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'region' => env('AWS_DEFAULT_REGION'),
+            'region' => env('AWS_DEFAULT_REGION', 'auto'),
             'bucket' => env('AWS_BUCKET'),
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
-            'report' => false,
-        ],
-
-        // Laravel Cloud managed storage (Tigris — S3-compatible)
-        'tigris' => [
-            'driver' => 's3',
-            'key' => env('TIGRIS_ACCESS_KEY_ID'),
-            'secret' => env('TIGRIS_SECRET_ACCESS_KEY'),
-            'region' => env('TIGRIS_REGION', 'auto'),
-            'bucket' => env('TIGRIS_BUCKET'),
-            'url' => env('TIGRIS_URL'),
-            'endpoint' => env('TIGRIS_ENDPOINT', 'https://fly.storage.tigris.dev'),
-            'use_path_style_endpoint' => false,
             'throw' => false,
             'report' => false,
         ],
