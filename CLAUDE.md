@@ -50,7 +50,7 @@ composer setup  # installs deps, creates .env, generates key, migrates, builds a
 
 ### Stack
 
-- **Backend**: Laravel 11, PHP 8.3, MySQL
+- **Backend**: Laravel 13, PHP 8.3+, MySQL
 - **Admin panel**: Filament 3.3 at `/admin` — amber theme, accessible to non-Player roles only
 - **Frontend**: React 18 + TypeScript SPA at `/app` and `/app/*` (catch-all Blade view)
 - **Build**: Vite 8 + `@vitejs/plugin-react` + Tailwind CSS 4 via `@tailwindcss/vite`

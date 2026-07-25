@@ -209,3 +209,78 @@ New `php artisan user:make-superadmin {email}` (`app/Console/Commands/MakeSuperA
 
 ### Deploy plan impact
 Both original Phase 2 items are now done — nothing missing/hardening-wise is known to be outstanding before a first deploy, beyond the operational step of actually running `php artisan user:make-superadmin <your-email>` once against production after the first real account registers.
+
+---
+
+## Update 2026-07-25 — city/thread banners, Witness System removed, typography cleanup, deploy survey
+
+Long multi-part session. Grouped by theme; commits are `6419fdc`, `3faae36`, `a4deaa3` (all local, still not pushed to `origin/main` — now 6 commits ahead).
+
+### Shipped (committed)
+
+**City banner images + thread header redesign (`6419fdc`, `3faae36`)**
+- `cities.banner_image` (migration + `City::banner_image_url` accessor + Filament `FileUpload` on `CityResource`).
+- Thread page header rebuilt as `.thread-header-compact` (breadcrumb/title/meta, same shape with or without a banner).
+- "Lore post" concept: the first post in a thread, when authored by an admin/mod, renders in a distinct manuscript style (`.lore-post-body`).
+- Quill editor additions across `thread-create.blade.php`/`post-edit.blade.php`: drop cap toggle, right-indent (`ql-indentright`/`ql-rindent-N`), image insert, link/image handlers switched to `window.prompt()` (Quill's tooltip UI breaks under the site's `zoom: 0.9`).
+- Data migration stripped a duplicate "Central Market" heading baked into post id 12's content (the real Central Market lore post), now superseded by the header itself.
+
+**Banner pivot + Witness System removal + typography (`a4deaa3`)** — came from live QA against the real Central Market thread with real uploaded artwork, which surfaced that the city banner showing on *every thread in that city* was the wrong place for it:
+- City banner moved to render on the city page (`/cities/{id}`) itself, hero-style, title overlaid.
+- New `threads.banner_image` column — any thread creator can upload a per-thread banner on both `thread-create` and `thread-edit`, rendered via the same hero-overlay treatment the city page uses, just sourced from the thread instead.
+- Witness System (Witness/Inspired/Moved reaction buttons, `post.react` route, `ThreadController::reactPost()`) removed outright at the owner's explicit request, despite CLAUDE.md documenting it as a core "makes players feel seen" mechanic — confirmed twice before removing. `post_reactions` table and `Post`/`PostReaction` model relations left in place, unused, in case of a future revival.
+- Reply-post and lore-post reading size unified to `18px` (was `1.35rem` vs `14px` — read as jarringly mismatched in practice).
+- Drop cap switched from a bare `font-size` to a fixed 2-body-line box (`line-height: 72px`, `font-size` well under that) so Thai vowel/tone marks (e.g. ่ in "ที่") don't make some glyphs look taller/misaligned than others; later bumped 44px → 58px on request.
+- Quill's semantic H1/H2/H3 header dropdown replaced with an explicit-px size dropdown (12–48px) using Quill's built-in `attributors/style/size`.
+- Scattered 9–10px/0.44–0.6rem label and badge text (timestamps, city sidebar stats, status badges) standardized to `11px`.
+- "Approved" status badge on posts hidden (it's the default state, was just noise) — Pending/rejected still show.
+
+### Verified (this session)
+- `php artisan test`: still 11/11, 71 assertions after every change in this session.
+- Playwright-driven live QA (via a temporary throwaway admin login, cleaned up after) confirmed: hero banner renders correctly when `banner_image` is set, indent-both-sides narrows a paragraph symmetrically and persists after reload, lore-post duplicate heading fix rendered correctly server-side.
+- Server-side Blade render check (via `tinker` + `view()->render()`) confirmed the lore-post font-size fix actually reaches the HTML — a user report of "still looks big" turned out to need a hard browser refresh, not a code fix.
+
+### Two audits done — **reports/plans only, zero implementation** (this is the biggest open item)
+
+**1. Character status system audit** (`characters.status`: pending/approved/active/rejected/suspended)
+- Finding: only `active` has any real business logic anywhere in the app (`EnsureKingdomSelected` middleware, `OnboardingController`). `approved`, `rejected`, `suspended` are selectable in Filament dropdowns but **nothing reads or writes them** in the live code paths — `rejectCharacter()` deliberately keeps status at `pending` rather than setting `rejected`.
+- Found a live bug from this: character id 6 has `status = approved` with a `kingdom_id` already set — since no code recognizes `approved`, this character will loop back into `/onboarding` forever despite having already picked a kingdom. Real data casualty of the dead state, not hypothetical.
+- Recommendation given (not actioned): collapse to `pending`/`active` only; drop `approved`/`rejected`/`suspended` from the schema (or migrate `approved` rows to `active`); if a real ban feature is wanted later, build it with actual enforcement rather than reviving `suspended` as-is.
+- **Owner's call**: parked for now, no decision made on if/when to execute the cleanup.
+
+**2. Filament UserResource/CharacterResource redesign** — full audit + a resolved Q&A on design intent, but **no code changed yet**. Agreed direction, ready to implement whenever picked back up:
+- `status` becomes single-source-of-truth on `CharacterResource` only (drop the 5-option editable dropdown from `UserResource`, keep it there read-only).
+- Same single-source-of-truth principle extends to all overlapping fields (name/kingdom_id/title/gold/stats) — `CharacterResource` becomes the sole editor, `UserResource` gets a read-only preview + "edit →" link.
+- `custom_frame` (currently `UserResource`-only, silently unreachable from `CharacterResource`) moves into `CharacterResource` too.
+- **Real bug to fix**: `InventoryRelationManager`'s form/table still reference `item_name`, a column dropped from `inventories` back in mid-2026 (replaced by `item_id` FK→items) — Create/Edit on this relation manager is currently broken (SQL error). Confirmed as a bug to fix, not intentional.
+- `user_id` reassignment on `CharacterResource` stays, but needs a confirmation modal added (currently silent).
+- Add `int`, `exp`, `exp_to_next`, `stat_points_available` as editable RPG Stats fields (currently missing from both resources).
+- Consolidate the Onboarding-answers placeholder (currently duplicated with different code in both resources) to `CharacterResource` only.
+- Remove dead code: `CreateCharacter` page + `CreateAction` (canCreate() is false, no 'create' route registered — unreachable).
+- Consolidate the approve/reject action logic (currently copy-pasted identically between the table row action and the `EditCharacter` page header action) into one shared implementation.
+- **Still genuinely unresolved**: `users.email` unique constraint was dropped in a mid-2026 migration with zero explanation anywhere in code/git history/docs — owner wanted to "check first" before deciding whether to restore it; no further info surfaced since.
+
+### Deploy-readiness survey (read-only, no code touched)
+- PHP `^8.3`, Laravel `^13.8` (running 13.15.0 locally) — **CLAUDE.md said "Laravel 11", now corrected to "Laravel 13, PHP 8.3+"**.
+- No queue/job usage anywhere (`ShouldQueue`/`dispatch()` — zero hits) despite `QUEUE_CONNECTION=database` being configured; no worker needed at deploy.
+- One scheduled task: `threads:purge-trashed` daily (`routes/console.php`) — needs the Laravel scheduler cron wired up on whatever host is used.
+- No Redis in actual use — cache/session both `database`; `REDIS_*` env vars are unused Laravel boilerplate.
+- Dev data is tiny: `storage/app/public` ~8.3MB, DB ~1.4MB (8 users, 7 threads, 9 posts) — not representative of any real load yet.
+- `DISCORD_WEBHOOK_URL` is declared in `.env`/`.env.cloud.example` but **wired into zero code** — setting it does nothing today; CLAUDE.md's "Notifications: Discord Webhook" line is aspirational, not current fact.
+- Found `.env.cloud.example` — a ready-made Laravel Cloud deploy template (Tigris S3 storage, managed MySQL, DB-backed session/cache/queue). This confirms Laravel Cloud is the intended deploy target.
+- Node: no version pinned anywhere before this session (dev machine had v24.18.0) — **added `.nvmrc` with `24.18.0`** to prevent a version-drift build break on deploy.
+- React SPA confirmed at `resources/frontend/vaelthorn-ui/` (React 18 + TS + Vite 8), still a separate prototype layer per earlier sessions' notes — not re-audited this pass.
+
+### Not done / still open
+- **Not pushed** — local `main` is 6 commits ahead of `origin/main`.
+- The two audits above (character status, Filament resources) are fully specced but **not implemented** — highest-value next session if the owner wants to act on them.
+- `users.email` uniqueness decision still pending (see above).
+- No automated test coverage added for any of this session's new features (thread/city banner upload, Witness removal, etc.) — the existing 11 tests don't touch these paths, so they pass by not being exercised, not by verifying the new behavior.
+- Owner's stated plan: deploy for real testers next rather than keep solo-iterating or relying on AI-driven QA alone, on the reasoning that only real usage surfaces the UX confusion an author testing their own app (or an AI) won't hit. Next session likely starts from tester feedback rather than a pre-planned task list — check here first for what that feedback was before assuming these open items are still the top priority.
+
+### Suggested next steps (if picked up cold)
+1. If tester feedback exists, read that first — it likely reprioritizes everything below.
+2. Decide + execute the Filament resource redesign (plan is fully agreed, just needs implementing) — start with the `InventoryRelationManager` bug since that's an active break, not just cleanup.
+3. Decide the character-status cleanup (collapse to 2-3 states) — the `approved`+`kingdom_id` stuck-character bug found during the audit is a real, if minor, live issue worth fixing regardless of the larger cleanup's timing.
+4. Resolve the `users.email` uniqueness question one way or the other — currently silently allows duplicates with no validation anywhere.
+5. Push local commits to `origin/main` once the above (or whatever's judged ready) is settled — nothing here is blocking that, it's just been sequenced after in case the owner wants to review history before publishing.
