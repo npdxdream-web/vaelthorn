@@ -65,11 +65,11 @@
         "vaul": "1.1.2"
     },
     "devDependencies": {
-        "@tailwindcss/vite": "4.1.12",
+        "@tailwindcss/vite": "4.3.3",
         "@vitejs/plugin-react": "^6.0.2",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^3.1",
-        "tailwindcss": "4.1.12",
+        "tailwindcss": "4.3.3",
         "vite": "^8.0.0"
     }
 }
