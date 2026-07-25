@@ -1,8 +1,8 @@
 # Status.md
 
-Snapshot of in-progress work on the `main` branch. Repo has a single commit ("Initial commit"); everything below is **uncommitted working-tree state** (122 changed files: modified/deleted/new, `git diff --stat` ≈ +1058/−2116 across tracked files, plus new untracked files/dirs).
+Snapshot of in-progress work on the `main` branch. All work described below is **committed and pushed to `origin/main`** (github.com/npdxdream-web/vaelthorn) — working tree is clean. The single-commit/122-uncommitted-files note that used to be here described the state on 2026-07-18, before the first push; kept no longer, see the dated updates below for what actually shipped.
 
-_Last updated: 2026-07-18_
+_Last updated: 2026-07-26_
 
 ---
 
@@ -287,7 +287,9 @@ Long multi-part session. Grouped by theme; commits are `6419fdc`, `3faae36`, `a4
 
 ---
 
-## Update 2026-07-25 (later same day) — domain + Laravel Cloud purchased; storage switched Tigris → Cloudflare R2
+## Update 2026-07-25 (later same day) — domain + Laravel Cloud purchased; storage switched Tigris → ~~Cloudflare R2~~
+
+> **⚠️ Correction (2026-07-26): everything below about "Cloudflare R2" was a mistaken guess and has been superseded.** The owner has no Cloudflare R2 account and never intended to use it — the `AWS_*` env vars this update wired up are consumed by **Laravel Cloud's own built-in Object Storage**, not R2. The hardcoded bucket ID/region/R2 endpoint mentioned below were fake/invented values, since removed. See the 2026-07-26 update further down for the actual fix. Left in place only as a historical record of what happened and why; don't act on the R2-specific details here.
 
 Owner bought a custom domain and a Laravel Cloud subscription, pushed the prior session's commits to `origin/main`, then provided real Cloudflare R2 credentials (bucket, region, endpoint — access key/secret still separate) to wire up as the production file storage, replacing the previously-planned Tigris.
 
@@ -327,16 +329,23 @@ Owner clarified the *intended* design during live testing: Approve should not ju
 
 All of the above: `php artisan test` 11/11 passing throughout (72 assertions after the last change), verified via `tinker` at each step (schema checks, per-stage reject only touching selected stages, resubmission clearing the right reason, view rendering with the new bubble markup).
 
-### 🔴 Unresolved, blocking: production is not running any of this session's code
-Owner reported a live bug (character stuck on the "awaiting review" onboarding screen despite admin setting status to "Approved" in the dashboard) that should have been fixed by `43d4073`. Investigation found:
-- `php artisan migrate:status` on production stops at `2026_07_25_010000_add_banner_image_to_threads_table` — **none** of today's 3 migrations have run.
-- A direct code check (`str_contains(file_get_contents(...OnboardingController.php...), 'isApprovedOrActive')`) confirmed **the PHP code itself is still the old pre-session version** — not just a missed migration. Laravel Cloud has not deployed any commit from this entire session, including the earlier storage/package/npm fixes.
-- Root cause not yet identified — owner was asked to check the Laravel Cloud dashboard's Deployments/Activity tab for the latest deploy's status (Success/Failed) and whether auto-deploy-on-push is enabled for `main`, but hasn't reported back yet.
-- **This blocks everything else**: none of this session's fixes (storage, onboarding flow, Kingdom reorder, etc.) are actually live regardless of how correct the code is locally.
-- Domain: owner asked if the purchased domain can be used yet — answered informationally (needs: add domain in Laravel Cloud's Domains section, point DNS per its instructions, update `APP_URL`), but flagged that testing the domain right now would just surface the same stale-code symptoms, so resolving the deploy pipeline should come first.
+### ✅ Resolved: production deploy succeeded, site is live at the real domain
+The stale-deploy issue above (production running old code, migrations 3 behind) was resolved — root cause/fix isn't detailed here (owner sorted it on the Laravel Cloud side), but as of now:
+- **The site is live at `https://vaelthorn.world`.**
+- `APP_URL` is set correctly in the production environment (no longer the `.laravel.cloud` placeholder).
+- DNS is pointed via **2 `A` records at Porkbun** (the domain registrar) instead of a `CNAME`.
+
+### Outstanding before opening to real players
+- **Not yet re-confirmed**: run `php artisan migrate:status` against production again to verify all migrations (including the 3 from 2026-07-26: stuck-`approved` fix, Kingdom `sort_order`, per-stage rejection reasons) actually show `Ran` now that a real deploy has gone through — this was the whole symptom last time, worth a fresh check rather than assuming it's fixed just because the site loads.
+- **`APP_KEY` needs rotating** — the current production value was exposed in a chat screenshot during this session. Generate a fresh one (`php artisan key:generate --show`) and replace it in the Laravel Cloud environment variables. Do this deliberately (not repeatedly) — changing `APP_KEY` invalidates existing sessions/encrypted data, so once is enough, but the currently-live one should be treated as compromised.
+- **Unpatched dependency vulnerabilities**, found via `composer audit`/`npm audit` earlier this session, not yet triaged or fixed:
+  - `react-router` — 1 high-severity advisory (version untouched by anything done this session).
+  - `guzzlehttp/guzzle` + `guzzlehttp/psr7` — 9 medium-severity advisories (transitive dependencies, pre-existing).
+- **Database is on a Dev-tier Laravel Cloud plan** — only 1 day of backup retention. Worth deciding whether to upgrade to a Production-tier plan (longer retention) before real player data accumulates that you'd actually want to restore from.
 
 ### Suggested next steps (if picked up cold)
-1. **Highest priority**: resolve why Laravel Cloud isn't deploying pushed commits — check the dashboard's Deployments/Activity tab for the latest attempt's status and error log first; if nothing shows, check whether the GitHub webhook/auto-deploy-on-push setting is still connected.
-2. Once a real deploy succeeds, run `php artisan migrate --force` to catch up all pending migrations (currently 3 behind).
-3. Re-verify the `test1`/`Test Test`-style stuck-onboarding scenario against production once code + migrations are actually current — should self-resolve once deployed, no manual DB fix needed thanks to the `2026_07_26_000000` data migration.
-4. Domain: only worth testing after the deploy pipeline is confirmed working, to avoid confusing "domain not set up" with "still running old code."
+1. Re-run `php artisan migrate:status` on production and confirm all migrations show `Ran` — don't assume this is fixed just because the deploy succeeded.
+2. Rotate `APP_KEY` in the Laravel Cloud environment now that the old one is known-exposed.
+3. Triage the `react-router` (high) and `guzzlehttp`/`psr7` (medium ×9) advisories — decide what's worth bumping vs. accepting for now.
+4. Decide on the Dev→Production DB plan upgrade (backup retention) before opening to real testers.
+5. Once the above is settled, proceed with the owner's stated plan from the previous update: open to real testers and let their feedback reprioritize the still-open Filament redesign / `users.email` uniqueness items further up this file.
