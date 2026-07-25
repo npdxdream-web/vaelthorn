@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Thread extends Model
 {
@@ -98,6 +99,16 @@ class Thread extends Model
 
     public function getBannerImageUrlAttribute(): ?string
     {
-        return $this->banner_image ? Storage::disk('public')->url($this->banner_image) : null;
+        if (! $this->banner_image) {
+            return null;
+        }
+
+        if (Str::startsWith($this->banner_image, ['http://', 'https://'])) {
+            return $this->banner_image;
+        }
+
+        // Backward compatibility for threads that still have a locally/S3-stored
+        // path from before banner_image switched to a pasted external URL.
+        return Storage::disk('public')->url($this->banner_image);
     }
 }
