@@ -97,8 +97,8 @@ class UserResource extends Resource
                         ->maxLength(255),
                     Forms\Components\Select::make('kingdom_id')
                         ->label('อาณาจักร')
+                        ->helperText('ปล่อยว่างเพื่อให้ผู้เล่นเลือกเองหลัง approve — กรอกเฉพาะกรณีต้องแก้ไขให้ผู้เล่น')
                         ->options(fn () => Kingdom::orderBy('name')->pluck('name', 'id'))
-                        ->required()
                         ->searchable(),
                     Forms\Components\Select::make('status')
                         ->label('Status')
