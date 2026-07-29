@@ -27,12 +27,18 @@ class InventoryResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('character_id')
-                    ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('item_name')
-                    ->required()
-                    ->maxLength(255),
+                Forms\Components\Select::make('character_id')
+                    ->label('ตัวละคร')
+                    ->relationship('character', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->required(),
+                Forms\Components\Select::make('item_id')
+                    ->label('ไอเทม')
+                    ->relationship('item', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->required(),
                 Forms\Components\TextInput::make('quantity')
                     ->required()
                     ->numeric()
@@ -44,10 +50,12 @@ class InventoryResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('character_id')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('character.name')
+                    ->label('ตัวละคร')
+                    ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('item_name')
+                Tables\Columns\TextColumn::make('item.name')
+                    ->label('ไอเทม')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('quantity')
                     ->numeric()

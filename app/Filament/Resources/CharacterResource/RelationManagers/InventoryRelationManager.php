@@ -16,10 +16,12 @@ class InventoryRelationManager extends RelationManager
     public function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\TextInput::make('item_name')
-                ->label('ชื่อไอเทม')
-                ->required()
-                ->maxLength(255),
+            Forms\Components\Select::make('item_id')
+                ->label('ไอเทม')
+                ->relationship('item', 'name')
+                ->searchable()
+                ->preload()
+                ->required(),
             Forms\Components\TextInput::make('quantity')
                 ->label('จำนวน')
                 ->numeric()
@@ -33,7 +35,7 @@ class InventoryRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('item_name')
+                Tables\Columns\TextColumn::make('item.name')
                     ->label('ชื่อไอเทม')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('quantity')

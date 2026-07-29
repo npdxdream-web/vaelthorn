@@ -920,7 +920,7 @@
                     </div>
                     <div class="inline-flex items-center gap-2 border border-gold/20 bg-gold/5 px-3 py-1.5 text-xs text-gold/75">
                         <span class="font-display text-[11px] uppercase tracking-wider">Posting as</span>
-                        <span class="font-display text-gold">{{ $currentCharacter->name }}</span>
+                        <span class="font-display text-gold">{{ $currentCharacter?->name ?? 'Admin' }}</span>
                     </div>
                 </div>
                 <form method="POST" action="{{ route('post.store', $thread->id) }}" id="thread-reply-form">
@@ -1297,6 +1297,7 @@ function initColorPicker(sliderId, hexId, previewId, quill) {
 function quillIndentAnywhereBindings() {
     var NBSP_CODE = 160;
     var INDENT_UNIT = String.fromCharCode(NBSP_CODE, NBSP_CODE, NBSP_CODE, NBSP_CODE);
+    var DIALOGUE_QUOTE = '"';
     function isNbspOnly(str) {
         for (var i = 0; i < str.length; i++) {
             if (str.charCodeAt(i) !== NBSP_CODE) return false;
@@ -1313,8 +1314,30 @@ function quillIndentAnywhereBindings() {
             collapsed: true,
             handler: function (range, context) {
                 if (isStructuredFormat(context.format)) return true;
-                var lineText = this.quill.getText(range.index - context.offset, context.offset);
+                var lineStart = range.index - context.offset;
+                var lineText = this.quill.getText(lineStart, context.offset);
                 if (!isNbspOnly(lineText)) return true;
+
+                // Dialogue shortcut: a *second* Tab pressed right after the
+                // first, on a line that is still completely blank otherwise
+                // (exactly one indent unit, nothing before or after it),
+                // swaps that indent for an opening quote mark instead of
+                // adding a second indent unit — a quick way to start a
+                // spoken line. Only fires for this exact "fresh empty line,
+                // two Tabs, nothing typed in between" gesture; a third Tab
+                // (line no longer NBSP-only) falls through normally.
+                if (lineText.length === INDENT_UNIT.length) {
+                    var lineInfo   = this.quill.getLine(range.index);
+                    var lineBlot   = lineInfo[0];
+                    var lineLength = lineBlot ? lineBlot.length() - 1 : lineText.length; // -1 excludes trailing "\n"
+                    if (lineLength === INDENT_UNIT.length) {
+                        this.quill.deleteText(lineStart, INDENT_UNIT.length, Quill.sources.USER);
+                        this.quill.insertText(lineStart, DIALOGUE_QUOTE, Quill.sources.USER);
+                        this.quill.setSelection(lineStart + DIALOGUE_QUOTE.length, Quill.sources.SILENT);
+                        return false;
+                    }
+                }
+
                 this.quill.insertText(range.index, INDENT_UNIT, Quill.sources.USER);
                 this.quill.setSelection(range.index + INDENT_UNIT.length, Quill.sources.SILENT);
                 return false;
