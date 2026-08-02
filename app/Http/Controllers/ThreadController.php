@@ -13,6 +13,7 @@ use App\Services\LevelingService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class ThreadController extends Controller
 {
@@ -149,7 +150,7 @@ class ThreadController extends Controller
             'content'      => 'required|string|min:1',
             'action'       => 'in:draft,submit',
             'banner_image' => 'nullable|image|mimes:jpeg,png,webp|max:3072',
-            'event_id'     => 'nullable|exists:events,id',
+            'event_id'     => ['nullable', Rule::exists('events', 'id')->where('status', 'active')],
         ]);
 
         $isLivePost = ($stats?->level >= 1) && ! $city->require_approval;
