@@ -65,7 +65,10 @@ class Event extends Model
             return null;
         }
 
-        $minutesLeft = now()->diffInMinutes($this->end_at, false);
+        // diffInMinutes() returns a float (fractional minutes) in the Carbon
+        // version pinned here — round to a whole minute up front so neither
+        // the plain interpolation below nor intdiv() ever sees a float again.
+        $minutesLeft = (int) round(now()->diffInMinutes($this->end_at, false));
 
         if ($minutesLeft <= 0) {
             return 'หมดเวลาแล้ว';

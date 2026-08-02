@@ -643,7 +643,7 @@ function initEventTypePreview() {
 
             data.rewards.forEach(function (r) {
                 const parts = [];
-                if (r.item) parts.push(r.item + ' ×' + r.qty);
+                if (r.item && r.qty > 0) parts.push(r.item + ' ×' + r.qty);
                 if (r.gold) parts.push(r.gold + ' Gold');
                 if (r.exp) parts.push(r.exp + ' EXP');
 

@@ -1107,7 +1107,7 @@
                                         {{ $earned ? '✓' : '★' }}
                                     </span>
                                     <span class="right-notice-copy min-w-0 flex-1" style="color:#c4b898">
-                                        @if($reward->item){{ $reward->item->name }} ×{{ $reward->item_quantity }}@endif
+                                        @if($reward->item && $reward->item_quantity > 0){{ $reward->item->name }} ×{{ $reward->item_quantity }}@endif
                                         @if($reward->gold_amount) · {{ number_format($reward->gold_amount) }} Gold @endif
                                         @if($reward->exp_amount) · {{ $reward->exp_amount }} EXP @endif
                                         @if($reward->note)

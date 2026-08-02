@@ -25,16 +25,19 @@ class Notification extends Model
 
     public function getUrlAttribute(): ?string
     {
-        if (! $this->link_type || ! $this->link_id) {
+        if (! $this->link_type) {
             return null;
         }
 
+        // 'inventory' is a static route (no id segment) — item/gold reward
+        // notifications intentionally carry link_id = null, so that arm must
+        // not fall through the old blanket "no link_id => no url" guard.
         return match ($this->link_type) {
-            'thread'         => route('thread', $this->link_id),
-            'event'          => route('events.show', $this->link_id),
+            'thread'         => $this->link_id ? route('thread', $this->link_id) : null,
+            'event'          => $this->link_id ? route('events.show', $this->link_id) : null,
             'inventory'      => route('inventory'),
-            'character'      => route('character.show', $this->link_id),
-            'council_letter' => route('council.show', $this->link_id),
+            'character'      => $this->link_id ? route('character.show', $this->link_id) : null,
+            'council_letter' => $this->link_id ? route('council.show', $this->link_id) : null,
             default          => null,
         };
     }

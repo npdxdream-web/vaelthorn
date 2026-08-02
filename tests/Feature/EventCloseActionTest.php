@@ -90,6 +90,49 @@ class EventCloseActionTest extends TestCase
         ]);
     }
 
+    /**
+     * Regression: closing an Event must never force an unmoderated thread
+     * (pending/draft/rejected/request_edit) straight to 'locked' — 'locked'
+     * is in Thread::isPubliclyVisible()'s list, so doing that would publish
+     * never-approved content to every visitor, bypassing moderation.
+     */
+    public function test_closing_an_event_does_not_touch_unmoderated_threads(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $this->makeCharacter($admin, 'AdminChar3');
+
+        $kingdom = Kingdom::create(['name' => 'Test Kingdom 2', 'is_active' => true]);
+        $city    = City::create(['kingdom_id' => $kingdom->id, 'name' => 'Test City 2', 'write_min_level' => 0]);
+
+        $event = Event::create([
+            'title' => 'Event With Unmoderated Threads', 'type' => 'flash',
+            'status' => 'active', 'created_by' => $admin->id, 'exp_reward' => 1,
+        ]);
+
+        $pendingThread = Thread::create([
+            'city_id' => $city->id, 'event_id' => $event->id, 'created_by' => $admin->id,
+            'title' => 'Pending Thread', 'status' => 'pending',
+        ]);
+        $draftThread = Thread::create([
+            'city_id' => $city->id, 'event_id' => $event->id, 'created_by' => $admin->id,
+            'title' => 'Draft Thread', 'status' => 'draft',
+        ]);
+        $rejectedThread = Thread::create([
+            'city_id' => $city->id, 'event_id' => $event->id, 'created_by' => $admin->id,
+            'title' => 'Rejected Thread', 'status' => 'rejected',
+        ]);
+
+        $this->actingAs($admin, 'admin');
+
+        Livewire::test(ListEvents::class)
+            ->callTableAction('closeEvent', $event)
+            ->assertHasNoTableActionErrors();
+
+        $this->assertSame('pending', $pendingThread->fresh()->status, 'A pending thread must not be force-locked on Event close');
+        $this->assertSame('draft', $draftThread->fresh()->status, 'A draft thread must not be force-locked on Event close');
+        $this->assertSame('rejected', $rejectedThread->fresh()->status, 'A rejected thread must not be force-locked on Event close');
+    }
+
     public function test_close_action_is_hidden_for_a_non_active_event(): void
     {
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);

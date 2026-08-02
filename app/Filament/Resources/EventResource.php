@@ -201,7 +201,7 @@ class EventResource extends Resource
                     ->modalHeading('ปิด Event นี้?')
                     ->modalDescription(function (Event $record): HtmlString {
                         $participantCount = $record->participants()->count();
-                        $openThreadCount  = $record->threads()->whereNotIn('status', ['locked', 'archived'])->count();
+                        $openThreadCount  = $record->threads()->whereIn('status', ['approved', 'open'])->count();
                         $rewardedCount    = RewardLog::where('event_id', $record->id)
                             ->whereNotNull('reward_id')
                             ->distinct('character_id')
@@ -218,7 +218,12 @@ class EventResource extends Resource
                         DB::transaction(function () use ($record) {
                             $record->update(['status' => 'closed']);
 
-                            $threads = $record->threads()->whereNotIn('status', ['locked', 'archived'])->get();
+                            // Only lock threads already publicly live (approved/open) —
+                            // 'locked' is in Thread::isPubliclyVisible()'s list, so force-
+                            // locking a still-pending/draft/rejected thread would make its
+                            // never-moderated content visible to everyone. Closing the
+                            // Event must never bypass the normal approval flow.
+                            $threads = $record->threads()->whereIn('status', ['approved', 'open'])->get();
                             foreach ($threads as $thread) {
                                 $thread->update(['status' => 'locked']);
                                 app(NotificationService::class)->notifyThreadLocked($thread);
