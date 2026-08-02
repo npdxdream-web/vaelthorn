@@ -24,6 +24,7 @@ class Event extends Model
     public function requirements() { return $this->hasMany(EventRequirement::class); }
     public function rewards() { return $this->hasMany(Reward::class); }
     public function characters() { return $this->belongsToMany(Character::class, 'event_participants'); }
+    public function threads() { return $this->hasMany(Thread::class); }
 
     /**
      * Presentation-only color/label mapping for the 4 existing event types.

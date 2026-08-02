@@ -5,13 +5,17 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\EventResource\Pages;
 use App\Models\City;
 use App\Models\Event;
+use App\Models\RewardLog;
+use App\Services\NotificationService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Notifications\Notification as FilamentNotification;
 use Filament\Resources\Resource;
 use Filament\Support\Colors\Color;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 
 class EventResource extends Resource
@@ -133,6 +137,29 @@ class EventResource extends Resource
                     ->badge()
                     ->color('success'),
 
+                Tables\Columns\TextColumn::make('participants_count')
+                    ->label('ผู้เข้าร่วม')
+                    ->counts('participants')
+                    ->sortable(),
+
+                // Not a stored column — computed per-row from reward_logs, since
+                // "rewarded" means at least one distinct reward template granted
+                // to that character for this Event (see LevelingService::
+                // distributeEventRewards's dedup rule). Cheap at this project's
+                // scale (~20 players/day, few concurrent Events); would need an
+                // eager-loaded subquery instead if that ever changes.
+                Tables\Columns\TextColumn::make('reward_stats')
+                    ->label('ได้รับ Reward')
+                    ->getStateUsing(function (Event $record): string {
+                        $participantCount = $record->participants_count ?? $record->participants()->count();
+                        $rewardedCount    = RewardLog::where('event_id', $record->id)
+                            ->whereNotNull('reward_id')
+                            ->distinct('character_id')
+                            ->count('character_id');
+
+                        return "{$rewardedCount}/{$participantCount} คน";
+                    }),
+
                 Tables\Columns\TextColumn::make('kingdom.name')
                     ->label('อาณาจักร')
                     ->default('—'),
@@ -165,6 +192,44 @@ class EventResource extends Resource
                     ]),
             ])
             ->actions([
+                Tables\Actions\Action::make('closeEvent')
+                    ->label('ปิด Event')
+                    ->icon('heroicon-o-lock-closed')
+                    ->color('warning')
+                    ->visible(fn (Event $record): bool => $record->status === 'active')
+                    ->requiresConfirmation()
+                    ->modalHeading('ปิด Event นี้?')
+                    ->modalDescription(function (Event $record): HtmlString {
+                        $participantCount = $record->participants()->count();
+                        $openThreadCount  = $record->threads()->whereNotIn('status', ['locked', 'archived'])->count();
+                        $rewardedCount    = RewardLog::where('event_id', $record->id)
+                            ->whereNotNull('reward_id')
+                            ->distinct('character_id')
+                            ->count('character_id');
+
+                        return new HtmlString(
+                            "ผู้เข้าร่วม {$participantCount} คน · ได้รับ reward ไปแล้ว {$rewardedCount} คน"
+                            . ' (ระบบแจกอัตโนมัติทันทีที่โพสต์ได้รับอนุมัติ — ปิด Event จะไม่แจกเพิ่ม)<br><br>'
+                            . "การปิดจะล็อคกระทู้ที่ผูกกับ Event นี้ทั้งหมด <strong>{$openThreadCount} กระทู้</strong> ทันที ผู้เล่นจะโพสต์เพิ่มไม่ได้"
+                        );
+                    })
+                    ->modalSubmitActionLabel('ยืนยันปิด Event')
+                    ->action(function (Event $record) {
+                        DB::transaction(function () use ($record) {
+                            $record->update(['status' => 'closed']);
+
+                            $threads = $record->threads()->whereNotIn('status', ['locked', 'archived'])->get();
+                            foreach ($threads as $thread) {
+                                $thread->update(['status' => 'locked']);
+                                app(NotificationService::class)->notifyThreadLocked($thread);
+                            }
+                        });
+
+                        FilamentNotification::make()
+                            ->title('ปิด Event และล็อคกระทู้ที่เกี่ยวข้องแล้ว')
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
