@@ -23,11 +23,18 @@ class RewardResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('event_id')
-                    ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('item_id')
-                    ->numeric(),
+                Forms\Components\Select::make('event_id')
+                    ->label('Event')
+                    ->relationship('event', 'title')
+                    ->searchable()
+                    ->preload()
+                    ->required(),
+                Forms\Components\Select::make('item_id')
+                    ->label('ไอเทม')
+                    ->relationship('item', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
                 Forms\Components\TextInput::make('item_quantity')
                     ->required()
                     ->numeric()

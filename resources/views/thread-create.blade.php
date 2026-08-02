@@ -171,6 +171,34 @@
                 @enderror
             </div>
 
+            @if($isLorePost)
+                {{-- Event link (admin only) --}}
+                <div class="mb-4">
+                    <label for="event_id" class="mb-1 block text-sm text-text-muted">ผูกกับ Event (ไม่บังคับ)</label>
+                    @if($events->isEmpty())
+                        <p class="w-full rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-4 py-2 text-sm text-[#686664]">
+                            ยังไม่มี Event ที่เปิดอยู่ตอนนี้
+                        </p>
+                    @else
+                        @php $selectedEventId = (string) old('event_id', request()->query('event_id')); @endphp
+                        <select name="event_id" id="event_id"
+                                class="w-full rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-4 py-2 text-[#e8e6e3] focus:border-[#D4AF37] focus:outline-none">
+                            <option value="">— ไม่ผูก Event —</option>
+                            @foreach($events as $event)
+                                <option value="{{ $event->id }}"
+                                        style="color:{{ $event->type_color }}"
+                                        {{ $selectedEventId === (string) $event->id ? 'selected' : '' }}>
+                                    {{ $event->type_icon }} {{ $event->title }} ({{ $event->type_label }}{{ $event->flash_time_remaining_label ? ' · ' . $event->flash_time_remaining_label : '' }})
+                                </option>
+                            @endforeach
+                        </select>
+                    @endif
+                    @error('event_id')
+                        <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
+                    @enderror
+                </div>
+            @endif
+
             {{-- Banner image (optional) --}}
             <div class="mb-4">
                 <label for="banner_image" class="mb-1 block text-sm text-text-muted">ภาพแบนเนอร์กระทู้ (ไม่บังคับ)</label>
@@ -264,6 +292,12 @@
                     <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
                 @enderror
             </div>
+
+            @if($city->require_approval)
+                <div class="mb-4 rounded-lg border border-amber-400/30 bg-amber-950/20 px-4 py-3 text-xs text-amber-300">
+                    ⚠ โซนนี้ต้องรออนุมัติและไม่ได้ผูกกับ Event — กระทู้นี้จะไม่ได้รับ EXP เว้นแต่แอดมินจะผูก Event ให้ภายหลัง
+                </div>
+            @endif
 
             {{-- Action buttons --}}
             <div class="flex items-center justify-between gap-3">

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Character;
 use App\Models\Event;
+use App\Models\EventParticipant;
 use App\Models\Inventory;
 use App\Models\Post;
 use App\Models\RewardLog;
@@ -111,8 +112,23 @@ class LevelingService
         }
 
         if ($event) {
+            $this->ensureEventParticipant($character, $event);
             $this->distributeEventRewards($character, $event);
         }
+    }
+
+    /**
+     * Mirrors the manual "เข้าร่วม Event" button on /events (EventController::join)
+     * — posting in an Event-linked thread counts as joining too. firstOrCreate
+     * makes this a no-op if the character already joined either way, so it's
+     * safe to call on every approved post in the thread, not just the first.
+     */
+    private function ensureEventParticipant(Character $character, Event $event): void
+    {
+        EventParticipant::firstOrCreate(
+            ['event_id' => $event->id, 'character_id' => $character->id],
+            ['joined_at' => now()]
+        );
     }
 
     /**

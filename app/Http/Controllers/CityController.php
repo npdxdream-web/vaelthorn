@@ -62,6 +62,7 @@ class CityController extends Controller
                          ->whereIn('status', ['pending', 'draft', 'request_edit', 'rejected']);
                   });
             })
+            ->with('event')
             ->withCount('posts')
             ->latest()
             ->get();

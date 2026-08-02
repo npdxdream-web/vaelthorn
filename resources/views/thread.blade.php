@@ -358,6 +358,15 @@
                         <span class="archive-label">Status</span>
                         <span class="rounded-full border px-2 py-0.5 text-xs {{ $thread->status_color }}">{{ $thread->status_label }}</span>
                     </div>
+                    @if($thread->display_tag)
+                        <div class="border-t border-gold/10 pt-3 flex flex-col gap-0.5">
+                            <span class="archive-label">{{ $thread->event ? 'ประเภท Event' : 'หมวดหมู่' }}</span>
+                            <span class="rounded px-2 py-0.5 text-xs w-fit"
+                                  style="background:{{ $thread->display_tag['bg'] }}; color:{{ $thread->display_tag['text'] }};">
+                                {{ $thread->display_tag['label'] }}
+                            </span>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -1017,6 +1026,12 @@
                     @error('content')
                         <p class="mb-3 text-sm text-red-400">{{ $message }}</p>
                     @enderror
+
+                    @if(is_null($thread->exp_override) && $thread->city->require_approval && ! $thread->event)
+                        <div class="mx-5 mb-3 rounded-lg border border-amber-400/30 bg-amber-950/20 px-4 py-3 text-xs text-amber-300">
+                            ⚠ โซนนี้ต้องรออนุมัติและกระทู้นี้ไม่ได้ผูกกับ Event — โพสต์นี้จะไม่ได้รับ EXP
+                        </div>
+                    @endif
 
                     <div class="flex flex-col gap-3 border-t border-gold/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                         <span class="text-xs text-text-muted">

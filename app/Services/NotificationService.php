@@ -123,6 +123,46 @@ class NotificationService
         ]);
     }
 
+    public function notifyThreadRejected(Thread $thread, ?string $reason = null): void
+    {
+        $thread->loadMissing('creator');
+
+        $user = $thread->creator;
+        if (! $user) {
+            return;
+        }
+
+        Notification::create([
+            'user_id'   => $user->id,
+            'type'      => 'thread_rejected',
+            'title'     => 'กระทู้ของคุณถูกปฏิเสธ',
+            'body'      => $reason ?? "\"{$thread->title}\"",
+            'data'      => ['thread_id' => $thread->id, 'reason' => $reason],
+            'link_type' => 'thread',
+            'link_id'   => $thread->id,
+        ]);
+    }
+
+    public function notifyThreadRequestEdit(Thread $thread, ?string $reason = null): void
+    {
+        $thread->loadMissing('creator');
+
+        $user = $thread->creator;
+        if (! $user) {
+            return;
+        }
+
+        Notification::create([
+            'user_id'   => $user->id,
+            'type'      => 'thread_request_edit',
+            'title'     => 'กระทู้ของคุณถูกขอให้แก้ไข',
+            'body'      => $reason ?? "\"{$thread->title}\"",
+            'data'      => ['thread_id' => $thread->id, 'reason' => $reason],
+            'link_type' => 'thread',
+            'link_id'   => $thread->id,
+        ]);
+    }
+
     public function notifyThreadLocked(Thread $thread): void
     {
         $thread->loadMissing('posts.character');

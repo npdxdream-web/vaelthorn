@@ -74,7 +74,14 @@
                     $kingdom = $thread->city?->kingdom;
                 @endphp
                 <a href="{{ route('thread', $thread->id) }}"
-                   class="archive-panel-soft group flex items-start gap-4 p-5 transition hover:border-gold/25 block">
+                   class="archive-panel-soft group relative flex items-start gap-4 p-5 transition hover:border-gold/25 block">
+
+                    @if($thread->display_tag)
+                        <span class="absolute -top-1.5 left-3 z-10 rounded px-2 py-0.5 font-display text-[0.6rem] uppercase tracking-wider"
+                              style="background:{{ $thread->display_tag['bg'] }}; color:{{ $thread->display_tag['text'] }};">
+                            {{ $thread->display_tag['label'] }}
+                        </span>
+                    @endif
 
                     {{-- Kingdom color accent --}}
                     <div class="mt-1 h-10 w-1 shrink-0 rounded-full opacity-70"

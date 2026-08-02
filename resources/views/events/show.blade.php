@@ -15,7 +15,7 @@
                 <div class="space-y-3 text-sm">
                     <div>
                         <span class="archive-label">Type</span>
-                        <div class="mt-1 text-text">{{ ucfirst(str_replace('_', ' ', $event->type)) }}</div>
+                        <div class="mt-1" style="color:{{ $event->type_color }}">{{ $event->type_icon }} {{ $event->type_label }}</div>
                     </div>
                     @if($event->kingdom)
                     <div class="border-t border-gold/10 pt-3">
@@ -110,13 +110,9 @@
 
     {{-- Header --}}
     @php
-        $typeColors = [
-            'flash'     => ['#f59e0b', '⚡', 'FLASH'],
-            'location'  => ['#60a5fa', '📍', 'LOCATION'],
-            'story_arc' => ['#a78bfa', '📖', 'STORY ARC'],
-            'crisis'    => ['#f87171', '⚠', 'CRISIS'],
-        ];
-        [$tc, $ti, $tl] = $typeColors[$event->type] ?? ['#c8a84b', '◆', strtoupper($event->type)];
+        $tc = $event->type_color;
+        $ti = $event->type_icon;
+        $tl = strtoupper($event->type_label);
     @endphp
 
     <div class="archive-panel corner-ornaments mb-6 overflow-hidden">

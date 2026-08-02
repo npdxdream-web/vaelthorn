@@ -3,13 +3,16 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\EventResource\Pages;
+use App\Models\City;
 use App\Models\Event;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Resources\Resource;
+use Filament\Support\Colors\Color;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class EventResource extends Resource
 {
@@ -38,6 +41,24 @@ class EventResource extends Resource
                         'crisis'    => 'Crisis (24–48 ชม.)',
                     ])
                     ->live(),
+
+                Forms\Components\Placeholder::make('type_color_preview')
+                    ->label('สี')
+                    ->content(function (Get $get) {
+                        $type = $get('type');
+                        $meta = Event::typeMeta()[$type] ?? null;
+
+                        if (! $meta) {
+                            return new HtmlString('<span class="text-gray-400">—</span>');
+                        }
+
+                        return new HtmlString(
+                            '<span style="display:inline-flex;align-items:center;gap:6px;">'
+                            . '<span style="width:14px;height:14px;border-radius:3px;background:' . $meta['color'] . ';display:inline-block;"></span>'
+                            . '<span>' . $meta['icon'] . ' ' . e($meta['label']) . '</span>'
+                            . '</span>'
+                        );
+                    }),
 
                 Forms\Components\Select::make('status')
                     ->label('สถานะ')
@@ -92,14 +113,11 @@ class EventResource extends Resource
                     ->searchable()
                     ->weight('semibold'),
 
-                Tables\Columns\BadgeColumn::make('type')
+                Tables\Columns\TextColumn::make('type')
                     ->label('ประเภท')
-                    ->colors([
-                        'warning' => 'flash',
-                        'danger'  => 'crisis',
-                        'primary' => 'story_arc',
-                        'success' => 'location',
-                    ]),
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => Event::typeMeta()[$state]['label'] ?? ucfirst($state))
+                    ->color(fn (string $state) => Color::hex(Event::typeMeta()[$state]['color'] ?? '#c8a84b')),
 
                 Tables\Columns\BadgeColumn::make('status')
                     ->label('สถานะ')
@@ -188,5 +206,19 @@ class EventResource extends Resource
     public static function canDelete($record): bool
     {
         return auth()->user()?->isAtLeastAdmin() ?? false;
+    }
+
+    /**
+     * A Thread belongs to a City, but an Event only optionally belongs to a
+     * Kingdom — so "create a thread for this Event" has to guess a City to
+     * land the admin on. Picks the Event's Kingdom's first City by name, or
+     * (for a Kingdom-less Event) the first City system-wide. Null means no
+     * City exists to route to at all.
+     */
+    public static function resolveThreadTargetCity(Event $event): ?City
+    {
+        return $event->kingdom_id
+            ? City::where('kingdom_id', $event->kingdom_id)->orderBy('name')->first()
+            : City::orderBy('name')->first();
     }
 }

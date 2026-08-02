@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ThreadCategory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
@@ -17,16 +18,18 @@ class Thread extends Model
         'banner_image',
         'location_label',
         'status',
+        'thread_category',
         'moderation_message',
         'archived_at',
         'exp_override',
     ];
 
     protected $casts = [
-        'archived_at' => 'datetime',
+        'archived_at'     => 'datetime',
+        'thread_category' => ThreadCategory::class,
     ];
 
-    protected $appends = ['status_label', 'status_color'];
+    protected $appends = ['status_label', 'status_color', 'display_tag'];
 
     public function city()
     {
@@ -79,6 +82,31 @@ class Thread extends Model
             'archived'         => 'text-indigo-300 bg-indigo-950/30 border-indigo-400/20',
             default            => 'text-gray-300 bg-gray-950/30 border-gray-400/20',
         };
+    }
+
+    // Card/detail tag shown across city/archive/thread views: an Event-linked
+    // thread shows its Event's type (flash/location/story_arc/crisis) instead
+    // of thread_category — thread_category stays exactly as-is (and still
+    // shows) for threads with no event_id, so plain threads are unaffected.
+    public function getDisplayTagAttribute(): ?array
+    {
+        if ($this->event) {
+            return [
+                'label' => $this->event->type_label,
+                'bg'    => $this->event->type_color . '26', // ~15% alpha chip background
+                'text'  => $this->event->type_color,
+            ];
+        }
+
+        if ($this->thread_category) {
+            return [
+                'label' => $this->thread_category->getLabel(),
+                'bg'    => $this->thread_category->bgHex(),
+                'text'  => $this->thread_category->textHex(),
+            ];
+        }
+
+        return null;
     }
 
     public function isPubliclyVisible(): bool

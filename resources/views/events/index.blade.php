@@ -54,10 +54,18 @@
             <div class="archive-panel p-5">
                 <p class="archive-label mb-3">Event Types</p>
                 <div class="space-y-2 text-xs text-text-muted">
-                    <div><span class="text-yellow-400">⚡</span> <strong class="text-text">Flash</strong> — 2-6 ชั่วโมง</div>
-                    <div><span class="text-blue-400">📍</span> <strong class="text-text">Location</strong> — 1-2 สัปดาห์</div>
-                    <div><span class="text-purple-400">📖</span> <strong class="text-text">Story Arc</strong> — 1+ เดือน</div>
-                    <div><span class="text-red-400">⚠</span> <strong class="text-text">Crisis</strong> — 24-48 ชั่วโมง</div>
+                    @php
+                        $typeDurations = [
+                            'flash' => '2-6 ชั่วโมง', 'location' => '1-2 สัปดาห์',
+                            'story_arc' => '1+ เดือน', 'crisis' => '24-48 ชั่วโมง',
+                        ];
+                    @endphp
+                    @foreach(\App\Models\Event::typeMeta() as $type => $meta)
+                        <div>
+                            <span style="color:{{ $meta['color'] }}">{{ $meta['icon'] }}</span>
+                            <strong class="text-text">{{ $meta['label'] }}</strong> — {{ $typeDurations[$type] }}
+                        </div>
+                    @endforeach
                 </div>
             </div>
         </div>
@@ -80,13 +88,9 @@
 
     @forelse($events as $event)
         @php
-            $typeColors = [
-                'flash'     => ['#f59e0b', '⚡', 'FLASH'],
-                'location'  => ['#60a5fa', '📍', 'LOCATION'],
-                'story_arc' => ['#a78bfa', '📖', 'STORY ARC'],
-                'crisis'    => ['#f87171', '⚠', 'CRISIS'],
-            ];
-            [$tc, $ti, $tl] = $typeColors[$event->type] ?? ['#c8a84b', '◆', strtoupper($event->type)];
+            $tc = $event->type_color;
+            $ti = $event->type_icon;
+            $tl = strtoupper($event->type_label);
             $kingdomColor = $event->kingdom?->color ?? '#c8a84b';
             $isJoined = $currentCharacter
                 ? $event->participants->contains('character_id', $currentCharacter->id)

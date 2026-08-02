@@ -16,7 +16,7 @@ class ArchiveController extends Controller
         $currentCharacter = $user->character?->load(['kingdom', 'currentKingdom', 'currentCity', 'stats', 'badges'])->loadCount('posts');
 
         $query = Thread::where('status', 'archived')
-            ->with('city.kingdom')
+            ->with(['city.kingdom', 'event'])
             ->withCount(['posts' => fn ($q) => $q->where('status', 'approved')])
             ->orderByDesc('archived_at');
 

@@ -167,8 +167,14 @@
                         $isPublic   = $thread->isPubliclyVisible();
                     @endphp
                     <a href="{{ route('thread', $thread->id) }}"
-                       class="archive-panel-soft group block overflow-hidden transition-all
+                       class="archive-panel-soft group relative block overflow-hidden transition-all
                               {{ $isPublic ? 'border-border hover:border-gold' : 'border-amber-400/20 hover:border-amber-400/50' }}">
+                        @if($thread->display_tag)
+                            <span class="absolute -top-1.5 left-3 z-10 rounded px-2 py-0.5 font-display text-[0.6rem] uppercase tracking-wider"
+                                  style="background:{{ $thread->display_tag['bg'] }}; color:{{ $thread->display_tag['text'] }};">
+                                {{ $thread->display_tag['label'] }}
+                            </span>
+                        @endif
                         <div class="p-5">
                             <div class="mb-3 flex items-start justify-between gap-4">
                                 <div class="flex-1 min-w-0">

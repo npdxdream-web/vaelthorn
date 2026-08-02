@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\City;
+use App\Models\Event;
 use App\Models\Notification;
 use App\Models\Post;
 use App\Models\Thread;
@@ -23,7 +24,7 @@ class ThreadController extends Controller
 
     public function show($id)
     {
-        $thread = Thread::with(['city.kingdom', 'creator'])->findOrFail($id);
+        $thread = Thread::with(['city.kingdom', 'creator', 'event'])->findOrFail($id);
         $user   = Auth::user();
         $currentCharacter = $user->character;
 
@@ -103,7 +104,11 @@ class ThreadController extends Controller
         // since there's no existing post to check against yet.
         $isLorePost = $user->isAtLeastAdmin();
 
-        return view('thread-create', compact('city', 'isLorePost'));
+        $events = $isLorePost
+            ? Event::where('status', 'active')->orderBy('title')->get()
+            : collect();
+
+        return view('thread-create', compact('city', 'isLorePost', 'events'));
     }
 
     public function storeThread(Request $request, $cityId)
@@ -131,6 +136,7 @@ class ThreadController extends Controller
             'content'      => 'required|string|min:1',
             'action'       => 'in:draft,submit',
             'banner_image' => 'nullable|image|mimes:jpeg,png,webp|max:3072',
+            'event_id'     => 'nullable|exists:events,id',
         ]);
 
         $isLivePost = ($stats?->level >= 1) && ! $city->require_approval;
@@ -144,8 +150,16 @@ class ThreadController extends Controller
             ? $request->file('banner_image')->store('threads', 'public')
             : null;
 
+        // Only an admin's own choice on the create form can link a thread to
+        // an Event — a non-admin posting the same route can never smuggle in
+        // an event_id even if one is present in the request payload.
+        $eventId = ($user->isAtLeastAdmin() && $request->filled('event_id'))
+            ? $request->input('event_id')
+            : null;
+
         $thread = Thread::create([
             'city_id'      => $city->id,
+            'event_id'     => $eventId,
             'created_by'   => $user->id,
             'title'        => $request->input('title'),
             'banner_image' => $bannerPath,
@@ -257,9 +271,11 @@ class ThreadController extends Controller
         } elseif ($action === 'request_edit') {
             $request->validate(['message' => 'required|string|max:1000']);
             $thread->update(['status' => 'request_edit', 'moderation_message' => $request->input('message')]);
+            $this->notifications->notifyThreadRequestEdit($thread, $request->input('message'));
         } elseif ($action === 'reject') {
             $request->validate(['message' => 'required|string|max:1000']);
             $thread->update(['status' => 'rejected', 'moderation_message' => $request->input('message')]);
+            $this->notifications->notifyThreadRejected($thread, $request->input('message'));
         } elseif ($action === 'move') {
             $request->validate(['city_id' => 'required|exists:cities,id']);
             $thread->update(['city_id' => $request->input('city_id')]);
@@ -327,6 +343,7 @@ class ThreadController extends Controller
         }
 
         $post->update(['status' => 'approved']);
+        $this->autoApproveThreadOnFirstPost($post);
 
         $this->notifications->notifyPostApproved($post);
         $this->dispatchThreadReplyNotifications($post->thread, $post);
@@ -590,6 +607,7 @@ class ThreadController extends Controller
         }
 
         $post->update(['status' => 'approved']);
+        $this->autoApproveThreadOnFirstPost($post);
 
         $this->notifications->notifyPostApproved($post);
         $this->dispatchThreadReplyNotifications($post->thread, $post);
@@ -652,8 +670,10 @@ class ThreadController extends Controller
             $this->notifications->notifyThreadLocked($thread);
         } elseif ($action === 'request_edit') {
             $thread->update(['status' => 'request_edit', 'moderation_message' => $request->input('message')]);
+            $this->notifications->notifyThreadRequestEdit($thread, $request->input('message'));
         } elseif ($action === 'reject') {
             $thread->update(['status' => 'rejected', 'moderation_message' => $request->input('message')]);
+            $this->notifications->notifyThreadRejected($thread, $request->input('message'));
         } elseif ($action === 'move') {
             $thread->update(['city_id' => $request->input('city_id')]);
         } elseif ($action === 'unlock') {
@@ -666,6 +686,29 @@ class ThreadController extends Controller
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    // A new thread and its opening post both start life as 'pending' — without
+    // this, moderators had to approve the post AND separately approve the
+    // thread before anyone else could see it, and nothing told them the
+    // second step was still outstanding. Approving the thread's first post
+    // is the natural "publish this thread" action, so it carries the thread
+    // status along with it. Only fires for a thread still awaiting its very
+    // first approval — approving some later post never resurrects a thread
+    // that a moderator has since locked/archived/rejected.
+    private function autoApproveThreadOnFirstPost(Post $post): void
+    {
+        $thread = $post->thread;
+
+        if ($thread->status !== 'pending') {
+            return;
+        }
+
+        $firstPostId = Post::where('thread_id', $thread->id)->oldest()->oldest('id')->value('id');
+
+        if ($firstPostId === $post->id) {
+            $thread->update(['status' => 'approved', 'moderation_message' => null]);
+        }
+    }
 
     private function dispatchThreadReplyNotifications(Thread $thread, Post $approvedPost): void
     {
