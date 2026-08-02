@@ -19,6 +19,7 @@ use App\Http\Controllers\BlacksmithController;
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\RecentActivityController;
 use App\Http\Controllers\CouncilLetterController;
+use App\Http\Controllers\PlayerController;
 
 // Auth Routes
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
@@ -115,6 +116,10 @@ Route::middleware(['auth'])->group(function () {
     // World Chronicles
     Route::get('/chronicles', [WorldChronicleController::class, 'index'])->name('chronicles.index');
     Route::get('/chronicles/{id}', [WorldChronicleController::class, 'show'])->name('chronicles.show');
+
+    // Player Directory & Leaderboard
+    Route::get('/players', [PlayerController::class, 'index'])->name('players.index');
+    Route::get('/leaderboard', [PlayerController::class, 'leaderboard'])->name('leaderboard.index');
 
     // Reward History
     Route::get('/rewards', [RewardHistoryController::class, 'index'])->name('rewards.index');
