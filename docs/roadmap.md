@@ -80,16 +80,19 @@ Admin สร้าง Event ใน City
 #### Priority 1 — Core Gameplay Loop (ยังทำงานไม่ครบ)
 
 **1.1 Event Participation**
-- [ ] Player กด "Join Event" → เขียน `event_participants` record
+- [x] Player กด "Join Event" → เขียน `event_participants` record (`EventController::join`)
+- [x] โพสต์ในกระทู้ที่ผูก Event ก็นับเป็น join อัตโนมัติด้วย (`LevelingService::ensureEventParticipant`, 2026-08-02)
 - [ ] ตรวจ `event_requirements` ก่อน join (stat/level gate)
 - [ ] แสดง Event ที่ joined ใน character profile
-- [ ] Flash event: auto-close เมื่อ `end_at` ผ่าน (queue job)
+- [ ] Flash event: auto-close เมื่อ `end_at` ผ่าน (queue job) — **ปิดด้วยมือผ่านปุ่ม "ปิด Event" ใน EventResource ทำได้แล้ว** (ดูข้อ 1.2) แต่ยังไม่ auto-close ตามเวลา
 
-**1.2 Reward Distribution**
-- [ ] Admin กด "Distribute Rewards" บน EventResource
-- [ ] ระบบเขียน `reward_logs` → อัปเดต `inventories` + `character_stats.gold`
-- [ ] กัน double-reward (ตรวจ reward_logs ก่อน)
-- [ ] แจ้ง Notification ให้ Player เมื่อได้รับ Reward
+**1.2 Reward Distribution** — ✅ เสร็จแล้ว (2026-08-02, ดู `docs/plans/event-thread-ux.md`)
+- [x] ~~Admin กด "Distribute Rewards" บน EventResource~~ → **เปลี่ยนกลไก**: แจกอัตโนมัติทันทีที่โพสต์แรกในกระทู้ที่ผูก Event ได้รับอนุมัติ ไม่ต้องมีปุ่มกดแยก (`LevelingService::distributeEventRewards`)
+- [x] ระบบเขียน `reward_logs` → อัปเดต `inventories` + `character_stats.gold`
+- [x] กัน double-reward (ตรวจ `reward_logs` ก่อน ผ่าน `reward_id` + `revoked=false`)
+- [x] แจ้ง Notification ให้ Player เมื่อได้รับ Reward (item ของเดิม, gold เพิ่มใหม่ 2026-08-02 — เดิมไม่มีเลย)
+- [x] Admin ปิด Event ทีเดียว + ล็อคกระทู้ที่ผูกอยู่ทั้งหมด + เห็นสรุปผู้เข้าร่วม/reward ก่อนยืนยัน (`EventResource::closeEvent`)
+- [x] สถิติผู้เข้าร่วม/อัตราได้ reward ต่อ Event (คอลัมน์ใหม่ใน EventResource table ไม่ต้องสร้างตารางใหม่)
 
 **1.3 EXP & Level Up**
 - [ ] เมื่อ Post ถูก Approve → ให้ EXP ตาม reward

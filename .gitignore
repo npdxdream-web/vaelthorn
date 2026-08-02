@@ -26,8 +26,5 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-# Backup/export snapshots (not project source)
-/vaelthorn-project.zip
-/files.zip
-/*.zip
-/*.png
+# Backup/export snapshots (not project source) — see design-reference/README.md
+/design-reference/exports/

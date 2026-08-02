@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> Other project docs (changelog, roadmap, feature plans, QA audits) live under [`docs/`](docs/INDEX.md) — see `docs/INDEX.md` for what's where.
+
 ---
 
 ## Commands
@@ -80,7 +82,7 @@ Admin panel (`/admin`) uses a **separate session cookie** (`vaelthorn_admin_sess
 
 ## Database Schema
 
-> **2026-07-18 restructure**: the old 2-tier `cities` (5 kingdoms) → `villages` (sub-areas) hierarchy was renamed to a clearer 2-tier `kingdoms` → `cities` hierarchy (`cities` table was freed up by first renaming it to `kingdoms`, then `villages` → `cities`). Model classes: `Kingdom` (new) and `City` (renamed-in-place from `Village`). This is a straight rename, not a new concept — see [Status.md](Status.md) for the full migration list and current rollout state.
+> **2026-07-18 restructure**: the old 2-tier `cities` (5 kingdoms) → `villages` (sub-areas) hierarchy was renamed to a clearer 2-tier `kingdoms` → `cities` hierarchy (`cities` table was freed up by first renaming it to `kingdoms`, then `villages` → `cities`). Model classes: `Kingdom` (new) and `City` (renamed-in-place from `Village`). This is a straight rename, not a new concept — see [docs/CHANGELOG.md](docs/CHANGELOG.md) for the full migration list and current rollout state.
 
 ### All tables (in dependency order)
 

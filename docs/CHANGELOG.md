@@ -1,8 +1,10 @@
-# Status.md
+# Changelog
 
 Snapshot of in-progress work on the `main` branch. All work described below is **committed and pushed to `origin/main`** (github.com/npdxdream-web/vaelthorn) — working tree is clean. The single-commit/122-uncommitted-files note that used to be here described the state on 2026-07-18, before the first push; kept no longer, see the dated updates below for what actually shipped.
 
-_Last updated: 2026-07-26_
+> **⚠️ Correction (2026-08-02): the "pushed / clean working tree" claim above is stale.** As of the 2026-08-02 update further down, local `main` is 5 commits ahead of `origin/main` (not yet pushed), and the working tree has a substantial amount of **unrelated, uncommitted** work sitting in it (a Friend system, a NoticeBoard/Islands system, a Player Directory/Leaderboard pair of pages) that predates and is untouched by the 2026-08-02 session. Don't assume "clean" or "pushed" from this banner — check `git status` / `git log origin/main..HEAD` directly.
+
+_Last updated: 2026-08-02_
 
 ---
 
@@ -107,7 +109,7 @@ MySQL wasn't running when this started; user started it manually. With a live DB
 4 of the 8 FK drops in `up()` used explicit MySQL constraint names (necessary in 2 of those cases because the constraint predates a table rename, so Laravel's naming convention wouldn't resolve correctly on MySQL). **Fixed**: extracted a `dropForeignPortable()` helper that branches by `DB::getDriverName()` — MySQL keeps the exact original explicit constraint names (unchanged behavior), SQLite uses column-array form. `down()` already used the portable array form throughout, untouched.
 
 ### New regression test: `tests/Feature/OnboardingKingdomFlowTest.php`
-After the 2 fixes above, wrote and passed (26 assertions) a full end-to-end test of the flow Status.md's original "Suggested next steps #1" asked to smoke-test by hand: register → submit all 3 onboarding essays → level auto-promotes to 1 but `status` stays `pending` → `/choose-kingdom` correctly 403s pre-approval → admin `CharacterResource::approveCharacter()` flips `status` to `active` → `/onboarding` now redirects to `/choose-kingdom` → choosing a kingdom sets `kingdom_id`/`current_kingdom_id` → a second choice is correctly rejected (permanent-once-set enforcement) → posting in a home-kingdom city with `require_approval=false` goes live (`approved`) immediately. This exercises `OnboardingService`, `CharacterResource::approveCharacter`, `KingdomSelectionController`, `EnsureKingdomSelected`, and `ThreadController::storeThread` together — the exact cross-cutting path the 2026-07-18 restructure touched.
+After the 2 fixes above, wrote and passed (26 assertions) a full end-to-end test of the flow this changelog's original "Suggested next steps #1" asked to smoke-test by hand: register → submit all 3 onboarding essays → level auto-promotes to 1 but `status` stays `pending` → `/choose-kingdom` correctly 403s pre-approval → admin `CharacterResource::approveCharacter()` flips `status` to `active` → `/onboarding` now redirects to `/choose-kingdom` → choosing a kingdom sets `kingdom_id`/`current_kingdom_id` → a second choice is correctly rejected (permanent-once-set enforcement) → posting in a home-kingdom city with `require_approval=false` goes live (`approved`) immediately. This exercises `OnboardingService`, `CharacterResource::approveCharacter`, `KingdomSelectionController`, `EnsureKingdomSelected`, and `ThreadController::storeThread` together — the exact cross-cutting path the 2026-07-18 restructure touched.
 
 Also fixed the stale default `tests/Feature/ExampleTest.php` (asserted `/` returns 200; app now redirects guests to `/login`) — trivial 1-line fix, `assertRedirect(route('login'))` instead.
 
@@ -171,7 +173,7 @@ Researched the full codebase (not just docs) before touching anything. Result: *
 - `posts.ai_summary` column (migration `2026_06_17_070027_fix_posts_add_ai_summary`) — only referenced as a `Post::$fillable` entry; never read or displayed anywhere.
 - `ANTHROPIC_API_KEY` env placeholder in `.env`/`.env.example`/`.env.cloud.example` — not even registered in `config/services.php`, so it wasn't wired into the framework at all.
 - A single Thai helper-text string on `WorldChronicleResource`'s content field mentioning "AI หรือ Admin" (AI or Admin) — cosmetic label only, chronicles have always been 100% admin-authored freeform text.
-- `WORKCARD.md`'s "Priority 2 — AI Features" section (Post Summarizer, World Chronicle Generator, Writing Assistant) — all 3 items unchecked, unbuilt.
+- `docs/roadmap.md`'s "Priority 2 — AI Features" section (Post Summarizer, World Chronicle Generator, Writing Assistant) — all 3 items unchecked, unbuilt.
 
 This meant removal was low-risk cleanup, not unwinding a live integration.
 
@@ -181,14 +183,14 @@ This meant removal was low-risk cleanup, not unwinding a live integration.
 - AI mention removed from `WorldChronicleResource`'s content field helper text.
 - `ANTHROPIC_API_KEY` removed from `.env`, `.env.example`, `.env.cloud.example` — one less production secret to configure.
 - `CLAUDE.md`: removed the AI stack bullet, the `ai_logs` schema table entry, `ai_summary` from the `posts` schema row, and reworded the Target Scale paragraph to explicitly note AI tooling was considered but is out of scope.
-- `WORKCARD.md`: reworded the WorldChronicleResource checklist item (was "AI-generated", now "freeform admin-written"), replaced the "Priority 2 — AI Features" task list with a dated note explaining the cut, removed the now-moot AI rate-limiting question from the open-questions list.
+- `docs/roadmap.md`: reworded the WorldChronicleResource checklist item (was "AI-generated", now "freeform admin-written"), replaced the "Priority 2 — AI Features" task list with a dated note explaining the cut, removed the now-moot AI rate-limiting question from the open-questions list.
 
 ### Verified after removal
 - `php artisan migrate` on the dev MySQL DB: both new migrations ran clean.
 - `migrate:fresh --seed` on a throwaway MySQL DB (same safe pattern as previous passes — dev DB untouched): clean from scratch with the 2 new migrations included.
 - `php artisan test`: still 8/8, 66 assertions, 0 failures.
 - `npm run build`: still clean.
-- Repo-wide grep for `anthropic|claude|ai_logs|ai_summary` (case-insensitive): zero remaining functional references — only the 4 migration files themselves (2 old creates + 2 new drops) and the intentional historical note in `WORKCARD.md`.
+- Repo-wide grep for `anthropic|claude|ai_logs|ai_summary` (case-insensitive): zero remaining functional references — only the 4 migration files themselves (2 old creates + 2 new drops) and the intentional historical note in `docs/roadmap.md`.
 
 ### Deploy plan impact
 `ANTHROPIC_API_KEY` is no longer part of the production secrets checklist — one less thing to configure/rotate/monitor cost on when setting up Laravel Cloud env vars.
@@ -349,3 +351,31 @@ The stale-deploy issue above (production running old code, migrations 3 behind) 
 3. Triage the `react-router` (high) and `guzzlehttp`/`psr7` (medium ×9) advisories — decide what's worth bumping vs. accepting for now.
 4. Decide on the Dev→Production DB plan upgrade (backup retention) before opening to real testers.
 5. Once the above is settled, proceed with the owner's stated plan from the previous update: open to real testers and let their feedback reprioritize the still-open Filament redesign / `users.email` uniqueness items further up this file.
+
+---
+
+## Update 2026-08-02 — Event↔Thread UX system built end-to-end (5 phases) + bug fixes
+
+Owner had a pre-written design doc, `docs/plans/event-thread-ux.md` (its own header said "not started yet" — stale, superseded by this update), laying out 5 phases to fix a real pain point: Threads and Events were two disconnected systems, so a Flash Event's thread couldn't be told apart from a regular one, admins had to hunt down and hand-grant rewards after a post was approved, and there was no way to close an Event without manually locking every thread one at a time. Built all 5 phases in one session, then did a dedicated bug-hunt pass on the finished work. Commits `b65a49a` → `8328e3c` (local `main`, **not yet pushed** — see the correction banner at the top of this file).
+
+**Phase 1 (`b65a49a`)** — `threads.event_id` FK (column already existed, just never wired up); admin-only dropdown on the create-thread form links a Thread to an active Event; `Thread::display_tag` auto-derives its color/label from the linked Event's type (falls back to the pre-existing `thread_category` enum for non-Event threads, unaffected); posting in an Event-linked thread auto-joins `event_participants` and auto-grants that Event's `rewards` the moment the post is approved (deduped per character+reward via `reward_logs`, revocable). Server-side hardened: `event_id` is silently stripped from the request unless the poster is an admin, regardless of what's smuggled into the payload.
+
+Side effects fixed along the way (not in the original plan, found via testing): threads no longer need a *second*, separate "approve the thread" click after its first post is approved (previously two disconnected steps); players now get a notification when their thread is rejected or sent back for edits (methods existed, were never wired up); a plain-EXP zone with no Event linked now shows an upfront warning that the post won't earn EXP, instead of leaving the player to wonder. All three of these turned out to already be logged as open bugs in `docs/audits/2026-07-29-qa-audit.md` (items #4, #6, #8) — marked resolved there too.
+
+**Phase 2 (`7688294`)** — the admin create-thread form now shows a live, no-reload preview once an Event is picked: type color/icon/label, a Flash countdown, and that Event's configured reward list, all sourced from `Event::typeMeta()` (single source of truth, no duplicated color maps).
+
+**Phase 3 (`d203bd0`)** — a "ผูก Event นี้" disclosure appears prominently on the thread's viewer page itself: type/countdown, the reward list, and — per-viewing-character — whether each reward has already been granted (checked live against `reward_logs`, not a fabricated progress counter). **Deviation from the plan**: the plan assumed a "3/5 posts" threshold model; verified via testing that no such threshold exists anywhere in the reward-granting code — it grants on the *first* approved post, full stop — so the UI was built to disclose that real behavior instead of inventing a mechanic that isn't there. Also added: gold rewards previously granted completely silently (item rewards already notified); added the missing notification.
+
+**Phase 4 (`2cba01a`)** — a "ปิด Event" row action on the Filament Events table (visible only while `status = active`): a confirmation modal shows participant count, how many already got a reward, and how many threads will be affected before you commit; confirming sets the Event to `closed` and bulk-locks every one of its still-live threads in one transaction, notifying each thread's participants (reusing the existing `notifyThreadLocked`). **Deviation from the plan**: the plan envisioned this button also *distributing* rewards on close — no longer needed, since Phase 1 already grants them the moment a post is approved, not at Event-close time. The button's actual remaining job is the bulk-lock, which was still a real unsolved pain point.
+
+**Phase 5 (`2cba01a`, same commit)** — two new read-only columns on the same Events table: participant count and `rewarded/participants` ratio. **Deviation from the plan**: the plan assumed this phase would need a brand-new stats table ("ต้องมีตารางข้อมูลใหม่") — turned out not to be true once Phase 1 existed, since `event_participants` + `reward_logs` already hold everything these numbers need. Per-type frequency is answered by the existing type filter on that same table; no new UI needed there either.
+
+**Bug-hunt pass (`8328e3c`)**, after all 5 phases were built and summarized: re-reviewed the whole diff and found 4 real defects, all fixed with a regression test each (31/31 tests passing, 182 assertions total):
+- **The one worth flagging hardest**: the Phase 4 "close Event" bulk-lock matched threads by `whereNotIn(status, [locked, archived])` — which also caught threads still `pending`/`draft`/`rejected`, i.e. **never approved by a moderator**. Force-locking one of those flips `Thread::isPubliclyVisible()` to true, publishing unmoderated content to every visitor. Fixed to only touch already-`approved`/`open` threads.
+- `Notification::getUrlAttribute()` required `link_id` to be truthy for every link type, but `route('inventory')` takes no id — so item/gold reward notifications (the exact ones added in Phase 1/3) never had a working "view" link, silently, since the method predates this session.
+- `Event::getFlashTimeRemainingLabelAttribute()`'s `diffInMinutes()` returns a float in the Carbon version pinned here; confirmed via a live repro that a Flash Event under an hour remaining would show players literally "เหลือ 45.77106495 นาที" instead of a whole number.
+- The reward-preview panels (Phases 2 and 3) showed an item name even when its configured `item_quantity` was 0 (a value the admin Reward form does allow) — cosmetic mismatch against the real grant condition, now consistent.
+
+Explicitly **not** touched this session, sitting in the working tree as pre-existing uncommitted work: a Friend system (`FriendController`, `Friendship`/`FriendRequest` models), a NoticeBoard/Islands system, and a small Player Directory + Leaderboard page pair built earlier in the same conversation but unrelated to the Event-Thread work. `ThreadController::moderate()`'s separate `lock` action has the same "doesn't check current status" shape as the Phase 4 bug described above, but is pre-existing code untouched by this session — noted, not fixed.
+
+**Not yet done**: a real browser/UI pass (only automated tests + `tinker`-driven manual verification so far, no browser tooling available in-session); `event_id` validation on thread creation doesn't re-check the Event is still `active` at submit time (very low-risk race given ~20 players/day scale).
