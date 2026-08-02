@@ -180,7 +180,33 @@
                             ยังไม่มี Event ที่เปิดอยู่ตอนนี้
                         </p>
                     @else
-                        @php $selectedEventId = (string) old('event_id', request()->query('event_id')); @endphp
+                        @php
+                            $selectedEventId = (string) old('event_id', request()->query('event_id'));
+
+                            // Duration hints mirror events/index.blade.php's "Event Types" legend —
+                            // presentation-only copy, not read from the DB.
+                            $typeHints = [
+                                'flash'     => 'Flash Event — ปิดใน 2–6 ชั่วโมง ตรวจเวลาปิดก่อนโพสต์',
+                                'location'  => 'Location Event — เปิดยาว 1–2 สัปดาห์',
+                                'story_arc' => 'Story Arc — จะเปลี่ยน canon ของโลกอย่างถาวร',
+                                'crisis'    => 'Crisis — ไม่มีประกาศล่วงหน้า อาจกระทบโลกทันที',
+                            ];
+
+                            $eventMeta = $events->mapWithKeys(fn ($event) => [$event->id => [
+                                'label'     => $event->type_label,
+                                'color'     => $event->type_color,
+                                'icon'      => $event->type_icon,
+                                'countdown' => $event->flash_time_remaining_label,
+                                'hint'      => $typeHints[$event->type] ?? null,
+                                'rewards'   => $event->rewards->map(fn ($r) => [
+                                    'item' => $r->item?->name,
+                                    'qty'  => $r->item_quantity,
+                                    'gold' => $r->gold_amount,
+                                    'exp'  => $r->exp_amount,
+                                    'note' => $r->note,
+                                ])->all(),
+                            ]]);
+                        @endphp
                         <select name="event_id" id="event_id"
                                 class="w-full rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-4 py-2 text-[#e8e6e3] focus:border-[#D4AF37] focus:outline-none">
                             <option value="">— ไม่ผูก Event —</option>
@@ -192,6 +218,14 @@
                                 </option>
                             @endforeach
                         </select>
+
+                        {{-- Live type-aware preview — updates on selection, no page reload --}}
+                        <script type="application/json" id="event-meta-data">{!! $eventMeta->toJson() !!}</script>
+                        <div id="event-type-preview" class="mt-3 hidden rounded-lg border px-4 py-3 text-xs">
+                            <div id="event-type-preview-title" class="font-display mb-1 text-sm"></div>
+                            <p id="event-type-preview-hint" class="text-[#9a9793]"></p>
+                            <div id="event-type-preview-rewards" class="mt-2 space-y-0.5"></div>
+                        </div>
                     @endif
                     @error('event_id')
                         <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
@@ -571,7 +605,63 @@ function registerSizeFormat() {
     Quill.register(SizeStyle, true);
 }
 
+// Event-type preview panel under the "ผูกกับ Event" select — reads the
+// per-event metadata (type color/icon/label/countdown + reward summary)
+// embedded server-side as JSON, no AJAX needed since the active-events list
+// is always small. No-op when the select isn't on the page (non-admin).
+function initEventTypePreview() {
+    const select = document.getElementById('event_id');
+    const metaEl = document.getElementById('event-meta-data');
+    if (!select || !metaEl) return;
+
+    const meta       = JSON.parse(metaEl.textContent);
+    const panel      = document.getElementById('event-type-preview');
+    const titleEl    = document.getElementById('event-type-preview-title');
+    const hintEl     = document.getElementById('event-type-preview-hint');
+    const rewardsEl  = document.getElementById('event-type-preview-rewards');
+
+    function render() {
+        const data = meta[select.value];
+        if (!data) {
+            panel.classList.add('hidden');
+            return;
+        }
+
+        panel.classList.remove('hidden');
+        panel.style.borderColor = data.color + '55';
+        panel.style.background  = data.color + '0d';
+        titleEl.style.color     = data.color;
+        titleEl.textContent     = data.icon + ' ' + data.label + (data.countdown ? ' · ' + data.countdown : '');
+        hintEl.textContent      = data.hint || '';
+
+        rewardsEl.innerHTML = '';
+        if (data.rewards && data.rewards.length) {
+            const label = document.createElement('div');
+            label.className = 'mt-2 text-[0.65rem] uppercase tracking-wider text-[#686664]';
+            label.textContent = 'เงื่อนไข Reward ของ Event นี้';
+            rewardsEl.appendChild(label);
+
+            data.rewards.forEach(function (r) {
+                const parts = [];
+                if (r.item) parts.push(r.item + ' ×' + r.qty);
+                if (r.gold) parts.push(r.gold + ' Gold');
+                if (r.exp) parts.push(r.exp + ' EXP');
+
+                const line = document.createElement('div');
+                line.className = 'text-[#9a9793]';
+                line.textContent = '• ' + (parts.join(', ') || '—') + (r.note ? ' (' + r.note + ')' : '');
+                rewardsEl.appendChild(line);
+            });
+        }
+    }
+
+    select.addEventListener('change', render);
+    render();
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+    initEventTypePreview();
+
     const Font = Quill.import('formats/font');
     Font.whitelist = ['sarabun','prompt','kanit','noto-serif-thai','mitr','charm','trirong','monospace'];
     Quill.register(Font, true);

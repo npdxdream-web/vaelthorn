@@ -105,7 +105,7 @@ class ThreadController extends Controller
         $isLorePost = $user->isAtLeastAdmin();
 
         $events = $isLorePost
-            ? Event::where('status', 'active')->orderBy('title')->get()
+            ? Event::where('status', 'active')->with('rewards.item')->orderBy('title')->get()
             : collect();
 
         return view('thread-create', compact('city', 'isLorePost', 'events'));
