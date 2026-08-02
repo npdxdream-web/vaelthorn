@@ -292,9 +292,7 @@ class CharacterResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('Approve ตัวละคร')
                     ->modalDescription(fn (Character $record) =>
-                        $record->stats?->level === 0
-                            ? 'ตัวละครยังอยู่ที่ Level 0 — จะถูก Approve และเลื่อนเป็น Level 1 ทันที'
-                            : 'ตัวละครผ่าน Onboarding แล้ว (Level ' . ($record->stats?->level ?? '?') . ') — จะถูก set เป็น Approved และบังคับให้เลือกอาณาจักรก่อน ถึงจะกลายเป็น Active'
+                        'ตัวละครผ่าน Onboarding ครบ 3 ด่านแล้ว (Level ' . ($record->stats?->level ?? '?') . ') — จะถูก set เป็น Approved และบังคับให้เลือกอาณาจักรก่อน ถึงจะกลายเป็น Active'
                     )
                     ->action(function (Character $record) {
                         static::approveCharacter($record);
@@ -303,7 +301,12 @@ class CharacterResource extends Resource
                             ->success()
                             ->send();
                     })
-                    ->visible(fn (Character $record) => $record->status === 'pending'),
+                    ->visible(fn (Character $record) =>
+                        $record->status === 'pending'
+                        && $record->stats?->stage_1_completed
+                        && $record->stats?->stage_2_completed
+                        && $record->stats?->stage_3_completed
+                    ),
 
                 // ── Reject ────────────────────────────────────────────────────
                 Tables\Actions\Action::make('reject_character')
