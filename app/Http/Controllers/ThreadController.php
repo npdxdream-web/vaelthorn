@@ -277,9 +277,18 @@ class ThreadController extends Controller
         if ($action === 'approve') {
             $thread->update(['status' => 'approved', 'moderation_message' => null]);
         } elseif ($action === 'lock') {
+            // Never let 'lock' promote an unmoderated thread (pending/draft/rejected/
+            // request_edit) straight to 'locked' — 'locked' is in isPubliclyVisible()'s
+            // list, so that would publish never-approved content to every visitor.
+            if (! in_array($thread->status, ['approved', 'open'], true)) {
+                return back()->with('error', 'ล็อคได้เฉพาะกระทู้ที่ได้รับการอนุมัติแล้วเท่านั้น');
+            }
             $thread->update(['status' => 'locked']);
             $this->notifications->notifyThreadLocked($thread);
         } elseif ($action === 'archive') {
+            if (! in_array($thread->status, ['approved', 'open', 'locked'], true)) {
+                return back()->with('error', 'เก็บถาวรได้เฉพาะกระทู้ที่ได้รับการอนุมัติหรือถูกล็อคแล้วเท่านั้น');
+            }
             $thread->update(['status' => 'archived', 'archived_at' => now()]);
             $this->notifications->notifyThreadLocked($thread);
         } elseif ($action === 'request_edit') {
@@ -677,9 +686,15 @@ class ThreadController extends Controller
         if ($action === 'approve') {
             $thread->update(['status' => 'approved', 'moderation_message' => null]);
         } elseif ($action === 'lock') {
+            if (! in_array($thread->status, ['approved', 'open'], true)) {
+                return response()->json(['message' => 'ล็อคได้เฉพาะกระทู้ที่ได้รับการอนุมัติแล้วเท่านั้น'], 422);
+            }
             $thread->update(['status' => 'locked']);
             $this->notifications->notifyThreadLocked($thread);
         } elseif ($action === 'archive') {
+            if (! in_array($thread->status, ['approved', 'open', 'locked'], true)) {
+                return response()->json(['message' => 'เก็บถาวรได้เฉพาะกระทู้ที่ได้รับการอนุมัติหรือถูกล็อคแล้วเท่านั้น'], 422);
+            }
             $thread->update(['status' => 'archived', 'archived_at' => now()]);
             $this->notifications->notifyThreadLocked($thread);
         } elseif ($action === 'request_edit') {
