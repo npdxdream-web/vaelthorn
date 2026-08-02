@@ -76,7 +76,7 @@ class ThreadResource extends Resource
                     ->label('หัวข้อ')
                     ->searchable()
                     ->limit(40),
-                Tables\Columns\TextColumn::make('user.name')
+                Tables\Columns\TextColumn::make('creator.name')
                     ->label('ผู้เขียน')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('city.name')
