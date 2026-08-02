@@ -287,6 +287,27 @@
                 </div>
             </div>
 
+            {{-- Notice Boards — new-player / meta content, separate from RP Kingdoms --}}
+            @if($noticeBoards->count())
+            <div class="archive-panel corner-ornaments mb-8 p-6">
+                <p class="archive-label mb-1">Getting Started</p>
+                <h2 class="font-decorative mb-4 text-2xl text-gold">จุดเริ่มต้นสำหรับผู้เดินทาง</h2>
+                <div class="flex flex-wrap gap-6">
+                    @foreach($noticeBoards as $noticeBoard)
+                        <a href="{{ route('notice-board.show', $noticeBoard->id) }}" class="group flex flex-col items-center" style="width:96px">
+                            <div class="mb-2 flex h-16 w-16 items-center justify-center rounded-full border-2 bg-bg-elevated/90 text-2xl backdrop-blur-sm transition-all group-hover:scale-110 group-hover:bg-border"
+                                 style="border-color: {{ $noticeBoard->color }}">
+                                {{ $noticeBoard->icon ?? '◆' }}
+                            </div>
+                            <span class="font-display text-center text-xs transition-colors" style="color: {{ $noticeBoard->color }}">
+                                {{ $noticeBoard->name }}
+                            </span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
             {{-- City Cards --}}
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 @foreach($kingdoms as $kingdom)

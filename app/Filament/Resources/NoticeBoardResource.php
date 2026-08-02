@@ -2,22 +2,22 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\KingdomResource\Pages;
-use App\Models\Kingdom;
+use App\Filament\Resources\NoticeBoardResource\Pages;
+use App\Models\NoticeBoard;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class KingdomResource extends Resource
+class NoticeBoardResource extends Resource
 {
-    protected static ?string $model = Kingdom::class;
+    protected static ?string $model = NoticeBoard::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-map';
-    protected static ?string $navigationLabel = 'อาณาจักร';
+    protected static ?string $navigationIcon = 'heroicon-o-map-pin';
+    protected static ?string $navigationLabel = 'ป้ายประกาศ';
     protected static ?string $navigationGroup = 'จัดการเนื้อหา';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {
@@ -31,12 +31,12 @@ class KingdomResource extends Resource
                 Forms\Components\TextInput::make('color')
                     ->required()
                     ->maxLength(255)
-                    ->default('#ffffff'),
+                    ->default('#c8a84b'),
                 Forms\Components\TextInput::make('icon')
                     ->maxLength(255),
                 Forms\Components\Toggle::make('is_active')
                     ->label('เปิดใช้งาน')
-                    ->helperText('ปิดแล้วผู้เล่นจะเลือกอาณาจักรนี้ไม่ได้, มองไม่เห็นในหน้าแรก, และเข้าเมืองในอาณาจักรนี้ไม่ได้เลย (แม้จะเป็นบ้านเกิดหรือมี travel permit อยู่แล้วก็ตาม) — แอดมิน/ผู้ดูแลยังเข้าได้ปกติ')
+                    ->helperText('ปิดแล้วจะไม่แสดงในหน้าแรกของเว็บ')
                     ->required(),
             ]);
     }
@@ -88,9 +88,9 @@ class KingdomResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListKingdoms::route('/'),
-            'create' => Pages\CreateKingdom::route('/create'),
-            'edit'   => Pages\EditKingdom::route('/{record}/edit'),
+            'index'  => Pages\ListNoticeBoards::route('/'),
+            'create' => Pages\CreateNoticeBoard::route('/create'),
+            'edit'   => Pages\EditNoticeBoard::route('/{record}/edit'),
         ];
     }
 

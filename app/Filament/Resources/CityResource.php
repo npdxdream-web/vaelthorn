@@ -17,7 +17,7 @@ class CityResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-home-modern';
     protected static ?string $navigationLabel = 'เมือง';
-    protected static ?string $navigationGroup = 'โลก';
+    protected static ?string $navigationGroup = 'จัดการเนื้อหา';
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form

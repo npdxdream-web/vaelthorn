@@ -20,6 +20,8 @@ use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\RecentActivityController;
 use App\Http\Controllers\CouncilLetterController;
 use App\Http\Controllers\FriendController;
+use App\Http\Controllers\NoticeBoardController;
+use App\Http\Controllers\NoticeBoardThreadController;
 use App\Http\Controllers\PlayerController;
 
 // Auth Routes
@@ -69,6 +71,11 @@ Route::get('/app/{any}', function () {
 // Protected Routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('home');
+    Route::get('/notice-boards/{id}', [NoticeBoardController::class, 'show'])->name('notice-board.show');
+    Route::get('/notice-boards/{noticeBoardId}/threads/create', [NoticeBoardThreadController::class, 'create'])->name('notice-board.thread.create');
+    Route::post('/notice-boards/{noticeBoardId}/threads', [NoticeBoardThreadController::class, 'store'])->name('notice-board.thread.store');
+    Route::get('/notice-board-threads/{id}', [NoticeBoardThreadController::class, 'show'])->name('notice-board.thread.show');
+    Route::post('/notice-board-threads/{id}/posts', [NoticeBoardThreadController::class, 'storePost'])->name('notice-board.thread.post.store');
     Route::get('/cities/{id}', [CityController::class, 'show'])->middleware('kingdom.selected')->name('city');
     Route::get('/cities/{id}/threads/create', [ThreadController::class, 'create'])->middleware('kingdom.selected')->name('thread.create');
     Route::post('/cities/{id}/threads', [ThreadController::class, 'storeThread'])->middleware('kingdom.selected')->name('thread.store');

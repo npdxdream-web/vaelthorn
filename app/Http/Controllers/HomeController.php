@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\NoticeBoard;
 use App\Models\Kingdom;
 use App\Models\Thread;
 use App\Models\Event;
@@ -21,6 +22,8 @@ class HomeController extends Controller
             ->take(3)
             ->get();
 
+        $noticeBoards = NoticeBoard::where('is_active', true)->orderBy('sort_order')->get();
+
         $flashEvents = Event::where('type', 'flash')
             ->where('status', 'active')
             ->where(function ($q) {
@@ -34,7 +37,7 @@ class HomeController extends Controller
         [$topPlayers, $myRank, $expToTop5] = $this->buildLeaderboard();
 
         return view('home', compact(
-            'kingdoms', 'recentThreads', 'flashEvents', 'echoText',
+            'kingdoms', 'recentThreads', 'noticeBoards', 'flashEvents', 'echoText',
             'topPlayers', 'myRank', 'expToTop5'
         ));
     }
