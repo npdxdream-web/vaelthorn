@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Character;
 use App\Models\CouncilLetter;
 use App\Models\Event;
+use App\Models\FriendRequest;
 use App\Models\Item;
 use App\Models\Notification;
 use App\Models\Post;
@@ -289,6 +290,50 @@ class NotificationService
             'data'      => ['letter_id' => $letter->id],
             'link_type' => 'council_letter',
             'link_id'   => $letter->id,
+        ]);
+    }
+
+    public function notifyFriendRequestReceived(FriendRequest $request): void
+    {
+        $request->loadMissing(['fromCharacter.user', 'toCharacter']);
+
+        $user = $request->toCharacter?->user;
+        if (! $user) {
+            return;
+        }
+
+        Notification::create([
+            'user_id'   => $user->id,
+            'type'      => 'friend_request',
+            'title'     => 'มีคำขอเป็นเพื่อนใหม่',
+            'body'      => "{$request->fromCharacter?->name} ส่งคำขอเป็นเพื่อนถึงคุณ",
+            'data'      => [
+                'friend_request_id'   => $request->id,
+                'from_character_id'   => $request->from_character_id,
+                'from_character_name' => $request->fromCharacter?->name,
+            ],
+            'link_type' => 'friend_request',
+            'link_id'   => $request->id,
+        ]);
+    }
+
+    public function notifyFriendRequestAccepted(FriendRequest $request, Character $accepter): void
+    {
+        $request->loadMissing('fromCharacter.user');
+
+        $user = $request->fromCharacter?->user;
+        if (! $user) {
+            return;
+        }
+
+        Notification::create([
+            'user_id'   => $user->id,
+            'type'      => 'friend_request_accepted',
+            'title'     => 'คำขอเป็นเพื่อนของคุณได้รับการตอบรับแล้ว',
+            'body'      => "{$accepter->name} ตอบรับคำขอเป็นเพื่อนของคุณ",
+            'data'      => ['character_id' => $accepter->id, 'character_name' => $accepter->name],
+            'link_type' => 'character',
+            'link_id'   => $accepter->id,
         ]);
     }
 

@@ -19,6 +19,7 @@ use App\Http\Controllers\BlacksmithController;
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\RecentActivityController;
 use App\Http\Controllers\CouncilLetterController;
+use App\Http\Controllers\FriendController;
 use App\Http\Controllers\PlayerController;
 
 // Auth Routes
@@ -89,6 +90,10 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/character', [CharacterController::class, 'update'])->name('character.update');
     Route::post('/character/stat', [CharacterController::class, 'allocateStat'])->name('character.stat.allocate');
     Route::get('/character/{id}', [CharacterController::class, 'show'])->name('character.show');
+    Route::post('/character/{character}/friend-request', [FriendController::class, 'store'])->name('friend.request.store');
+    Route::delete('/character/{character}/friend', [FriendController::class, 'destroy'])->name('friend.destroy');
+    Route::post('/friend-requests/{friendRequest}/accept', [FriendController::class, 'accept'])->name('friend.request.accept');
+    Route::post('/friend-requests/{friendRequest}/reject', [FriendController::class, 'reject'])->name('friend.request.reject');
 
     // Events
     Route::get('/events', [EventController::class, 'index'])->name('events.index');

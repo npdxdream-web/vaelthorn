@@ -31,7 +31,15 @@ class CharacterController extends Controller
 
         $currentCharacter = Auth::user()->character;
 
-        return view('character', compact('character', 'recentPosts', 'currentCharacter'));
+        $isFriend = $currentCharacter ? $currentCharacter->isFriendWith($character) : false;
+        $pendingRequest = $currentCharacter ? $currentCharacter->pendingRequestWith($character) : null;
+
+        $friends = $character->friendships()
+            ->with('characterTwo.kingdom')
+            ->get()
+            ->pluck('characterTwo');
+
+        return view('character', compact('character', 'recentPosts', 'currentCharacter', 'isFriend', 'pendingRequest', 'friends'));
     }
 
     public function edit()

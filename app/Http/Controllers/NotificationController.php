@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FriendRequest;
 use App\Models\Notification;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,6 +13,7 @@ class NotificationController extends Controller
         'event'       => ['event_started', 'event_ending_soon'],
         'reward'      => ['item_received', 'gold_received'],
         'progression' => ['level_up', 'badge_awarded'],
+        'friend'      => ['friend_request', 'friend_request_accepted'],
         'system'      => ['system_announcement', 'council_letter_new', 'council_letter_replied'],
     ];
 
@@ -28,6 +30,17 @@ class NotificationController extends Controller
 
         $notifications = $query->paginate(20)->withQueryString();
         $unreadCount   = Notification::where('user_id', Auth::id())->unread()->count();
+
+        $pendingFriendRequests = FriendRequest::whereIn(
+            'id',
+            $notifications->getCollection()->where('type', 'friend_request')->pluck('data.friend_request_id')->filter()
+        )->where('status', 'pending')->get()->keyBy('id');
+
+        $notifications->getCollection()->each(function ($notif) use ($pendingFriendRequests) {
+            if ($notif->type === 'friend_request') {
+                $notif->pendingFriendRequest = $pendingFriendRequests->get($notif->data['friend_request_id'] ?? null);
+            }
+        });
 
         return view('notifications', compact('notifications', 'currentCharacter', 'unreadCount', 'filter'));
     }

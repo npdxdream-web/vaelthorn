@@ -20,6 +20,7 @@
                             'event'       => ['⚡', 'Events'],
                             'reward'      => ['★', 'รางวัล'],
                             'progression' => ['▲', 'Progression'],
+                            'friend'      => ['🤝', 'เพื่อน'],
                             'system'      => ['⚙', 'ระบบ'],
                         ];
                     @endphp
@@ -91,6 +92,8 @@
                         'thread_locked'       => ['◼', '#9ca3af', 'กระทู้'],
                         'level_up'            => ['▲', '#c8a84b', 'เลเวล'],
                         'badge_awarded'       => ['◆', '#f59e0b', 'Badge'],
+                        'friend_request'          => ['🤝', '#7ab0d4', 'เพื่อน'],
+                        'friend_request_accepted' => ['🤝', '#6abf88', 'เพื่อน'],
                         'system_announcement' => ['⚙', '#9ca3af', 'ระบบ'],
                     ];
                     [$icon, $color, $typeLabel] = $typeConfig[$notif->type] ?? ['◈', '#9ca3af', 'แจ้งเตือน'];
@@ -148,7 +151,28 @@
 
                         {{-- Action button --}}
                         <div class="flex shrink-0 flex-col items-end gap-1.5">
-                            @if($openUrl)
+                            @if($notif->type === 'friend_request' && $notif->pendingFriendRequest)
+                                <div class="flex gap-1.5">
+                                    <form method="POST" action="{{ route('friend.request.accept', $notif->pendingFriendRequest->id) }}">
+                                        @csrf
+                                        <button type="submit"
+                                                class="rounded border border-emerald-700/40 px-2.5 py-1.5 font-display text-[0.6rem] uppercase tracking-wider text-emerald-400/80 transition hover:bg-emerald-950/30 hover:text-emerald-300">
+                                            ตอบรับ
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ route('friend.request.reject', $notif->pendingFriendRequest->id) }}">
+                                        @csrf
+                                        <button type="submit"
+                                                class="rounded border border-rose-800/40 px-2.5 py-1.5 font-display text-[0.6rem] uppercase tracking-wider text-rose-400/70 transition hover:bg-rose-950/30 hover:text-rose-300">
+                                            ปฏิเสธ
+                                        </button>
+                                    </form>
+                                </div>
+                            @elseif($notif->type === 'friend_request')
+                                <span class="rounded border border-gold/15 px-2.5 py-1.5 font-display text-[0.55rem] uppercase tracking-wider text-gold/40">
+                                    ดำเนินการแล้ว
+                                </span>
+                            @elseif($openUrl)
                                 <a href="{{ $openUrl }}"
                                    class="inline-flex items-center gap-1 rounded border border-gold/25 px-3 py-1.5
                                           font-display text-[0.6rem] uppercase tracking-wider text-gold/70

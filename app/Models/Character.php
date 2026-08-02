@@ -119,4 +119,34 @@ class Character extends Model
     {
         return $this->hasMany(OnboardingEntry::class)->orderBy('stage');
     }
+
+    public function friendRequestsSent()
+    {
+        return $this->hasMany(FriendRequest::class, 'from_character_id');
+    }
+
+    public function friendRequestsReceived()
+    {
+        return $this->hasMany(FriendRequest::class, 'to_character_id');
+    }
+
+    public function friendships()
+    {
+        return $this->hasMany(Friendship::class, 'character_id_1');
+    }
+
+    public function isFriendWith(Character $other): bool
+    {
+        return $this->friendships()->where('character_id_2', $other->id)->exists();
+    }
+
+    public function pendingRequestWith(Character $other): ?FriendRequest
+    {
+        return FriendRequest::where('status', 'pending')
+            ->where(function ($q) use ($other) {
+                $q->where(['from_character_id' => $this->id, 'to_character_id' => $other->id])
+                    ->orWhere(['from_character_id' => $other->id, 'to_character_id' => $this->id]);
+            })
+            ->first();
+    }
 }

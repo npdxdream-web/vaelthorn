@@ -100,6 +100,17 @@
 
     {{-- ── Main column ─────────────────────────────────────────────────── --}}
 
+    @if(session('success'))
+        <div class="mb-4 rounded border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-400">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if($errors->any())
+        <div class="mb-4 rounded border border-rose-800 bg-rose-950/50 px-4 py-3 text-sm text-rose-400">
+            {{ $errors->first() }}
+        </div>
+    @endif
+
     {{-- Profile header --}}
     <div class="archive-panel corner-ornaments mb-6 p-8">
         <div class="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
@@ -129,6 +140,24 @@
                            class="shrink-0 rounded border border-gold/25 bg-gold/5 px-3 py-1 font-display text-xs uppercase tracking-wider text-gold/70 transition hover:bg-gold/10 hover:text-gold">
                             ✎ แก้ไข
                         </a>
+                    @elseif($currentCharacter)
+                        @if($isFriend)
+                            <span class="shrink-0 rounded border border-emerald-400/25 bg-emerald-950/20 px-3 py-1 font-display text-xs uppercase tracking-wider text-emerald-300">
+                                ★ เพื่อนกันแล้ว
+                            </span>
+                        @elseif($pendingRequest)
+                            <span class="shrink-0 rounded border border-gold/15 px-3 py-1 font-display text-xs uppercase tracking-wider text-gold/40">
+                                {{ $pendingRequest->from_character_id === $currentCharacter->id ? 'ส่งคำขอแล้ว' : 'รอการตอบรับ' }}
+                            </span>
+                        @else
+                            <form method="POST" action="{{ route('friend.request.store', $character->id) }}">
+                                @csrf
+                                <button type="submit"
+                                        class="shrink-0 rounded border border-gold/25 bg-gold/5 px-3 py-1 font-display text-xs uppercase tracking-wider text-gold/70 transition hover:bg-gold/10 hover:text-gold">
+                                    + เพิ่มเพื่อน
+                                </button>
+                            </form>
+                        @endif
                     @endif
                 </div>
                 <h1 class="font-decorative mb-1 text-3xl text-gold">{{ $character->name }}</h1>
@@ -164,58 +193,133 @@
         @endif
     </div>
 
-    {{-- Badges --}}
-    @if($character->badges->count())
-    <div class="archive-panel mb-6 p-6">
-        <h2 class="font-display mb-4 text-base text-gold">Honours & Medals</h2>
-        <div class="flex flex-wrap gap-3">
-            @foreach($character->badges->sortByDesc('acquired_at') as $cb)
-                <div class="flex items-center gap-2 rounded border border-gold/20 bg-gold/5 px-3 py-2">
-                    @if($cb->badge?->icon)
-                        <span class="text-xl">{{ $cb->badge->icon }}</span>
-                    @endif
-                    <div>
-                        <div class="font-display text-xs text-gold">{{ $cb->badge?->name ?? '—' }}</div>
-                        @if($cb->badge?->description)
-                            <div class="text-xs text-text-muted">{{ $cb->badge->description }}</div>
-                        @endif
-                        @if($cb->acquired_at)
-                            <div class="mt-0.5 text-[0.65rem] text-text-subtle">{{ $cb->acquired_at->format('d M Y') }}</div>
-                        @endif
-                    </div>
-                </div>
-            @endforeach
-        </div>
+    {{-- Tab bar --}}
+    <div class="mb-4 flex gap-2">
+        <button type="button" data-tab-btn="profile" onclick="vtSwitchTab('profile')"
+                class="rounded border border-gold/40 bg-gold/15 px-4 py-1.5 font-display text-xs uppercase tracking-wider text-gold transition">
+            ข้อมูลตัวละคร
+        </button>
+        <button type="button" data-tab-btn="relationships" onclick="vtSwitchTab('relationships')"
+                class="rounded border border-gold/15 px-4 py-1.5 font-display text-xs uppercase tracking-wider text-gold/50 transition hover:border-gold/30 hover:text-gold/80">
+            ความสัมพันธ์
+        </button>
     </div>
-    @endif
 
-    {{-- Recent Chronicles --}}
-    <div class="archive-panel p-6">
-        <h2 class="font-display mb-4 text-base text-gold">Recent Chronicles</h2>
-        @forelse($recentPosts as $post)
-            <a href="{{ route('thread', $post->thread_id) }}"
-               class="archive-panel-soft group mb-3 block p-4 transition hover:border-gold">
-                <div class="mb-1 flex items-start justify-between gap-4">
-                    <h3 class="font-medium text-text group-hover:text-gold">
-                        {{ $post->thread->title ?? '—' }}
-                    </h3>
-                    <span class="shrink-0 text-xs text-text-subtle">{{ $post->created_at->diffForHumans() }}</span>
+    <div data-tab-panel="profile">
+
+        {{-- Badges --}}
+        @if($character->badges->count())
+        <div class="archive-panel mb-6 p-6">
+            <h2 class="font-display mb-4 text-base text-gold">Honours & Medals</h2>
+            <div class="flex flex-wrap gap-3">
+                @foreach($character->badges->sortByDesc('acquired_at') as $cb)
+                    <div class="flex items-center gap-2 rounded border border-gold/20 bg-gold/5 px-3 py-2">
+                        @if($cb->badge?->icon)
+                            <span class="text-xl">{{ $cb->badge->icon }}</span>
+                        @endif
+                        <div>
+                            <div class="font-display text-xs text-gold">{{ $cb->badge?->name ?? '—' }}</div>
+                            @if($cb->badge?->description)
+                                <div class="text-xs text-text-muted">{{ $cb->badge->description }}</div>
+                            @endif
+                            @if($cb->acquired_at)
+                                <div class="mt-0.5 text-[0.65rem] text-text-subtle">{{ $cb->acquired_at->format('d M Y') }}</div>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+        {{-- Recent Chronicles --}}
+        <div class="archive-panel p-6">
+            <h2 class="font-display mb-4 text-base text-gold">Recent Chronicles</h2>
+            @forelse($recentPosts as $post)
+                <a href="{{ route('thread', $post->thread_id) }}"
+                   class="archive-panel-soft group mb-3 block p-4 transition hover:border-gold">
+                    <div class="mb-1 flex items-start justify-between gap-4">
+                        <h3 class="font-medium text-text group-hover:text-gold">
+                            {{ $post->thread->title ?? '—' }}
+                        </h3>
+                        <span class="shrink-0 text-xs text-text-subtle">{{ $post->created_at->diffForHumans() }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-text-muted">
+                        <span>{{ $post->thread->city->name ?? '—' }}</span>
+                        <span>•</span>
+                        <span style="color:{{ $post->thread->city->kingdom->color ?? '#c8a84b' }}">
+                            {{ $post->thread->city->kingdom->name ?? '—' }}
+                        </span>
+                    </div>
+                    <p class="mt-2 line-clamp-2 text-sm text-text-muted/80">
+                        {{ strip_tags($post->content) }}
+                    </p>
+                </a>
+            @empty
+                <p class="text-sm text-text-subtle">ยังไม่มี chronicles ที่ได้รับการอนุมัติ</p>
+            @endforelse
+        </div>
+
+    </div>
+
+    {{-- Relationships tab --}}
+    <div data-tab-panel="relationships" class="hidden">
+        <div class="archive-panel p-6">
+            <h2 class="font-display mb-4 text-base text-gold">เพื่อนทั้งหมด ({{ $friends->count() }})</h2>
+            @forelse($friends as $friend)
+                <div class="archive-panel-soft mb-3 flex items-center justify-between gap-4 p-4">
+                    <a href="{{ route('character.show', $friend->id) }}" class="group flex items-center gap-3">
+                        <x-avatar-frame
+                            :rank="strtolower($friend->custom_frame ?? $friend->auto_rank)"
+                            :size="48"
+                            :initial="mb_substr($friend->name, 0, 1)"
+                            :color="$friend->kingdom->color ?? '#c8a84b'"
+                        >
+                            @if($friend->avatar)
+                                <img src="{{ $friend->avatar_url }}" alt="{{ $friend->name }}"
+                                     style="width:100%;height:100%;object-fit:cover;">
+                            @endif
+                        </x-avatar-frame>
+                        <div>
+                            <div class="font-display text-sm text-text group-hover:text-gold">{{ $friend->name }}</div>
+                            <div class="text-xs" style="color:{{ $friend->kingdom->color ?? '#c8a84b' }}">
+                                {{ $friend->kingdom->name ?? '—' }}
+                            </div>
+                        </div>
+                    </a>
+                    @if(auth()->id() === $character->user_id)
+                        <form method="POST" action="{{ route('friend.destroy', $friend->id) }}"
+                              onsubmit="return confirm('ยกเลิกความเป็นเพื่อนกับ {{ $friend->name }}?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit"
+                                    class="shrink-0 rounded border border-rose-800/40 px-3 py-1.5 font-display text-xs uppercase tracking-wider text-rose-400/70 transition hover:bg-rose-950/30 hover:text-rose-300">
+                                ยกเลิกเพื่อน
+                            </button>
+                        </form>
+                    @endif
                 </div>
-                <div class="flex items-center gap-2 text-xs text-text-muted">
-                    <span>{{ $post->thread->city->name ?? '—' }}</span>
-                    <span>•</span>
-                    <span style="color:{{ $post->thread->city->kingdom->color ?? '#c8a84b' }}">
-                        {{ $post->thread->city->kingdom->name ?? '—' }}
-                    </span>
-                </div>
-                <p class="mt-2 line-clamp-2 text-sm text-text-muted/80">
-                    {{ strip_tags($post->content) }}
-                </p>
-            </a>
-        @empty
-            <p class="text-sm text-text-subtle">ยังไม่มี chronicles ที่ได้รับการอนุมัติ</p>
-        @endforelse
+            @empty
+                <p class="text-sm text-text-subtle">ยังไม่มีเพื่อน</p>
+            @endforelse
+        </div>
     </div>
 
 </x-public.shell>
+
+<script>
+function vtSwitchTab(tab) {
+    document.querySelectorAll('[data-tab-panel]').forEach(function (el) {
+        el.classList.toggle('hidden', el.dataset.tabPanel !== tab);
+    });
+    document.querySelectorAll('[data-tab-btn]').forEach(function (el) {
+        var active = el.dataset.tabBtn === tab;
+        el.classList.toggle('border-gold/40', active);
+        el.classList.toggle('bg-gold/15', active);
+        el.classList.toggle('text-gold', active);
+        el.classList.toggle('border-gold/15', !active);
+        el.classList.toggle('text-gold/50', !active);
+    });
+}
+</script>
 @endsection
