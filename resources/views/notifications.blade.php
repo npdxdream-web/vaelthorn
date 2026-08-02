@@ -84,6 +84,7 @@
                         'post_approved'       => ['✓', '#6abf88', 'โพสต์'],
                         'post_rejected'       => ['✗', '#e05555', 'โพสต์'],
                         'item_received'       => ['★', '#c8a84b', 'รางวัล'],
+                        'gold_received'       => ['◈', '#f0c94a', 'รางวัล'],
                         'event_ending_soon'   => ['⚡', '#e07855', 'Event'],
                         'event_started'       => ['⚡', '#7ab0d4', 'Event'],
                         'thread_reply'        => ['✦', '#a78bfa', 'กระทู้'],

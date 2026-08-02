@@ -6,6 +6,7 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\Notification;
 use App\Models\Post;
+use App\Models\RewardLog;
 use App\Models\Thread;
 use App\Models\User;
 use App\Services\LevelingService;
@@ -24,7 +25,7 @@ class ThreadController extends Controller
 
     public function show($id)
     {
-        $thread = Thread::with(['city.kingdom', 'creator', 'event'])->findOrFail($id);
+        $thread = Thread::with(['city.kingdom', 'creator', 'event.rewards.item'])->findOrFail($id);
         $user   = Auth::user();
         $currentCharacter = $user->character;
 
@@ -80,9 +81,21 @@ class ThreadController extends Controller
             ? $posts->where('character_id', $currentCharacter->id)->values()
             : collect();
 
+        // Which of this Event's rewards has the viewing character already
+        // received? Mirrors the dedup check in LevelingService::distributeEventRewards
+        // (revoked = false) so the disclosure panel never shows "earned" for a
+        // reward that's since been clawed back.
+        $earnedRewardIds = ($currentCharacter && $thread->event)
+            ? RewardLog::where('character_id', $currentCharacter->id)
+                ->where('event_id', $thread->event_id)
+                ->whereNotNull('reward_id')
+                ->where('revoked', false)
+                ->pluck('reward_id')
+            : collect();
+
         return view('thread', compact(
             'thread', 'posts', 'participants', 'currentCharacter', 'cities',
-            'notices', 'unreadCount', 'myPosts'
+            'notices', 'unreadCount', 'myPosts', 'earnedRewardIds'
         ));
     }
 

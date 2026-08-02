@@ -10,7 +10,7 @@ class NotificationController extends Controller
     private const FILTER_MAP = [
         'post'        => ['post_approved', 'post_rejected', 'thread_reply', 'thread_locked'],
         'event'       => ['event_started', 'event_ending_soon'],
-        'reward'      => ['item_received'],
+        'reward'      => ['item_received', 'gold_received'],
         'progression' => ['level_up', 'badge_awarded'],
         'system'      => ['system_announcement', 'council_letter_new', 'council_letter_replied'],
     ];

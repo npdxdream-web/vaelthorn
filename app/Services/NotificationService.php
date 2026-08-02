@@ -91,6 +91,19 @@ class NotificationService
         ]);
     }
 
+    public function notifyGoldReceived(User $user, int $amount): void
+    {
+        Notification::create([
+            'user_id'   => $user->id,
+            'type'      => 'gold_received',
+            'title'     => 'ได้รับ Gold',
+            'body'      => "จำนวน {$amount} Gold",
+            'data'      => ['gold_amount' => $amount],
+            'link_type' => 'inventory',
+            'link_id'   => null,
+        ]);
+    }
+
     public function notifyEventEndingSoon(Event $event, User $user): void
     {
         Notification::create([

@@ -1081,6 +1081,53 @@
                     </div>
                 </div>
 
+                {{-- ── Event & Rewards — collapsible, default open, disclosed
+                       up front per vaelthorn-event-thread-ux-plan.md เฟส 3 ──── --}}
+                @if($thread->event)
+                <div class="thread-side-panel is-right" data-collapsible>
+                    <div class="thread-side-heading rail-toggle-btn" onclick="railToggle(this)">
+                        <span style="color:{{ $thread->event->type_color }}">
+                            {{ $thread->event->type_icon }} {{ $thread->event->type_label }} Event
+                        </span>
+                        <i class="rail-chevron">▾</i>
+                    </div>
+                    <div class="rail-body">
+                        <div class="thread-side-body" style="padding:0">
+                            @if($thread->event->flash_time_remaining_label)
+                                <div class="right-flat-row cursor-default opacity-80">
+                                    <span>⏳ เวลาที่เหลือ</span>
+                                    <span style="color:{{ $thread->event->type_color }}">{{ $thread->event->flash_time_remaining_label }}</span>
+                                </div>
+                            @endif
+                            @forelse($thread->event->rewards as $reward)
+                                @php $earned = $earnedRewardIds->contains($reward->id); @endphp
+                                <div class="right-notice-row border-b border-gold/8">
+                                    <span class="right-notice-pill text-[9px]"
+                                          style="background:{{ $earned ? 'rgba(74,222,128,.15)' : 'rgba(200,168,75,.15)' }};color:{{ $earned ? '#4ade80' : '#c8a84b' }}">
+                                        {{ $earned ? '✓' : '★' }}
+                                    </span>
+                                    <span class="right-notice-copy min-w-0 flex-1" style="color:#c4b898">
+                                        @if($reward->item){{ $reward->item->name }} ×{{ $reward->item_quantity }}@endif
+                                        @if($reward->gold_amount) · {{ number_format($reward->gold_amount) }} Gold @endif
+                                        @if($reward->exp_amount) · {{ $reward->exp_amount }} EXP @endif
+                                        @if($reward->note)
+                                            <span class="block text-[0.7rem] italic opacity-70">{{ $reward->note }}</span>
+                                        @endif
+                                        @if($currentCharacter)
+                                            <span class="block text-[0.65rem]" style="color:{{ $earned ? '#4ade80' : '#9a8968' }}">
+                                                {{ $earned ? 'คุณได้รับแล้ว' : 'จะได้รับอัตโนมัติเมื่อโพสต์ของคุณได้รับอนุมัติ' }}
+                                            </span>
+                                        @endif
+                                    </span>
+                                </div>
+                            @empty
+                                <div class="px-4 py-3 text-[0.78rem] italic" style="color:#6b6050">Event นี้ยังไม่มี reward ที่ตั้งไว้</div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 {{-- ── Notices — collapsible, default open ────────────── --}}
                 <div class="thread-side-panel is-right" data-collapsible>
                     <div class="thread-side-heading rail-toggle-btn" onclick="railToggle(this)">

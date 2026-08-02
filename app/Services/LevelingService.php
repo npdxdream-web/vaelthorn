@@ -211,6 +211,10 @@ class LevelingService
             // Distribute gold
             if ($reward->gold_amount > 0) {
                 $character->increment('gold', $reward->gold_amount);
+
+                if ($character->user) {
+                    app(NotificationService::class)->notifyGoldReceived($character->user, $reward->gold_amount);
+                }
             }
 
             // Audit log — separate entry per reward template
