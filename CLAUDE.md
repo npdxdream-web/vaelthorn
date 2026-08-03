@@ -1,200 +1,267 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+คู่มืออ้างอิงสำหรับ Claude Code เมื่อทำงานกับ repo นี้
+**ตรวจสอบกับโค้ดจริงล่าสุด: 2026-08-03** (route:list, SHOW COLUMNS ของ DB จริง, grep ทั้ง repo)
 
-> Other project docs (changelog, roadmap, feature plans, QA audits) live under [`docs/`](docs/INDEX.md) — see `docs/INDEX.md` for what's where.
+> เอกสารอื่น (changelog, roadmap, แผนฟีเจอร์, QA audit) อยู่ใน [`docs/`](docs/INDEX.md)
+
+---
+
+## ⚠️ กฎการดูแลไฟล์นี้ — อ่านก่อนแก้
+
+ไฟล์นี้เคยมีปัญหาร้ายแรง: มีการเขียนว่า "ระบบ X ทำเสร็จแล้ว" ทั้งที่ไม่เคยทำงานจริง
+(กรณี `UseAdminSessionCookie` — เขียนไว้ว่าแยก session cookie แล้ว แต่ middleware ไม่เคยถูกเรียกใช้)
+กฎด้านล่างนี้เขียนขึ้นเพื่อกัน "เอกสารโกหก" ที่ทำให้เข้าใจว่าระบบทำงานตามนี้ทั้งที่ยังไม่จริง
+
+**กฎ 3 ข้อ:**
+
+1. **เขียนได้เฉพาะสิ่งที่ยืนยันจากโค้ดจริงแล้ว** — ห้ามเขียนจากความจำ จากแผนเดิม หรือจากการคาดเดา
+2. **ของที่ยังไม่เสร็จ ต้องอยู่ในหมวด "Known Issues & Debt" เท่านั้น** ห้ามปนกับส่วนที่อธิบายระบบที่ใช้งานจริง
+3. **แก้โค้ดเรื่องไหน อัปเดตเอกสารเรื่องนั้นใน commit เดียวกัน** — ค้าง commit มักจะไม่ถูกอัปเดต
 
 ---
 
 ## Commands
 
-### Laravel / PHP
-
 ```bash
-# Start all dev processes (server + queue + pail + vite)
+# รัน dev ทั้งหมดพร้อมกัน (server + queue + pail + vite)
 composer dev
 
-# Run migrations
 php artisan migrate
-
-# Run seeders
 php artisan db:seed
 
-# Run tests (clears config cache first)
-composer test
+composer test                                       # ล้าง config cache ก่อนรันเทสต์
+php artisan test tests/Feature/FriendshipTest.php    # รันไฟล์เดียว
 
-# Run a single test file
-php artisan test tests/Feature/ExampleTest.php
-
-# Fix PHP code style
-./vendor/bin/pint
-
-# Generate Filament resources / panels
+./vendor/bin/pint                                    # จัด code style
 php artisan make:filament-resource ModelName
-```
 
-### Frontend (React/Vite)
-
-```bash
-npm run dev    # Dev server only
-npm run build  # Production build
-```
-
-### Full Project Setup
-
-```bash
-composer setup  # installs deps, creates .env, generates key, migrates, builds assets
+npm run dev / npm run build                          # React SPA
+composer setup                                       # ติดตั้งใหม่ทั้งหมดตั้งแต่ต้น
 ```
 
 ---
 
-## Architecture
+## Stack & Environments
 
-### Stack
-
-- **Backend**: Laravel 13, PHP 8.3+, MySQL
-- **Admin panel**: Filament 3.3 at `/admin` — amber theme, accessible to non-Player roles only
-- **Frontend**: React 18 + TypeScript SPA at `/app` and `/app/*` (catch-all Blade view)
-- **Build**: Vite 8 + `@vitejs/plugin-react` + Tailwind CSS 4 via `@tailwindcss/vite`
-- **Local dev**: Laragon (vaelthorn.test)
-- **Notifications**: Discord Webhook
-
-### Routing split
-
-| Path | Handler |
+| | |
 |---|---|
-| `/register`, `/login`, `/logout` | `AuthController` (Blade + session auth) |
-| `/onboarding`, `/onboarding/stage`, `/choose-kingdom` | `OnboardingController`, `KingdomSelectionController` |
-| `/`, `/cities/*`, `/threads/*`, `/posts/*` | Protected web routes → Blade views |
-| `/market/shop*` | `ShopController` (buy crafted goods with gold or materials) |
-| `/blacksmith*` | `BlacksmithController` (multi-player crafting orders) |
-| `/api/cities/{id}`, `/api/threads/{id}/posts` | JSON API consumed by React |
-| `/app`, `/app/{any}` | Catch-all → React SPA |
-| `/admin/*` | Filament panel |
+| **Backend** | Laravel 13, PHP 8.3+, MySQL |
+| **Admin panel** | Filament 3.3 ที่ `/admin` — guard `admin`, ฟอนต์ Noto Sans Thai |
+| **Frontend หลัก** | **Blade** — หน้าเว็บทั้งหมดที่ผู้เล่นใช้จริงเป็น Blade |
+| **React SPA** | React 18 + TS ที่ `/app` และ `/app/*` เท่านั้น (ขอบเขตจำกัด — ดูรายละเอียดหมวด Frontend) |
+| **Build** | Vite 8 + `@vitejs/plugin-react` + Tailwind CSS 4 (`@tailwindcss/vite`) |
+| **Local dev** | Laragon — `vaelthorn.test` |
+| **Production** | Laravel Cloud — `vaelthorn.world` |
+| **แจ้งเตือนภายนอก** | Discord Webhook (`DISCORD_WEBHOOK_URL`) |
 
-> **Terminology note**: as of the 2026-07-18 restructure, `CityController`/`/cities/*` is the **sub-city tier** (was `VillageController`/`/villages/*`), and `Kingdom` is the top-level tier (was the `City` model/`cities` table). See Database Schema below.
+### Production — ข้อควรระวังที่เคยทำให้เสียเวลา
 
-### Session separation
-
-Admin panel (`/admin`) uses a **separate session cookie** (`vaelthorn_admin_session`) from the frontend (`vaelthorn_session`) — configured in `config/session.php` and `.env`. This prevents 419 conflicts when a player is logged in on the frontend and opens `/admin` in a new tab.
+- **Object storage ไม่ auto-inject** — Laravel Cloud ไม่ set ค่า bucket ให้อัตโนมัติ
+  ต้องตั้ง `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET`, `AWS_DEFAULT_REGION`,
+  `AWS_ENDPOINT`, `AWS_USE_PATH_STYLE_ENDPOINT`, `AWS_URL` ด้วยมือใน **Custom environment variables**
+- `config/filesystems.php` สลับ disk `public` เป็น driver `s3` **อัตโนมัติเมื่อมี `AWS_BUCKET`**
+  ถ้าไม่มีจะ fallback เป็น local — เพราะฉะนั้นถ้าลืมตั้งค่าใน production จะเขียนไฟล์ลง container ชั่วคราวโดยไม่รู้ตัว
+- **ห้ามพิมพ์ค่า secret ลงแชทกับ AI** โดยเฉพาะ 2 ตัว (`APP_KEY`, `AWS_SECRET`) ต้อง rotate ทันทีถ้าหลุด
+  ให้ copy จากที่เก็บลับภายนอกเสมอ
+- `SESSION_COOKIE` **ไม่มีใน `.env.example`** — ถ้าไม่ตั้งจะ fallback เป็น `vaelthorn_session`
 
 ---
 
-## Database Schema
+## Routing Map
 
-> **2026-07-18 restructure**: the old 2-tier `cities` (5 kingdoms) → `villages` (sub-areas) hierarchy was renamed to a clearer 2-tier `kingdoms` → `cities` hierarchy (`cities` table was freed up by first renaming it to `kingdoms`, then `villages` → `cities`). Model classes: `Kingdom` (new) and `City` (renamed-in-place from `Village`). This is a straight rename, not a new concept — see [docs/CHANGELOG.md](docs/CHANGELOG.md) for the full migration list and current rollout state.
+หน้าเว็บทั้งหมดเป็น Blade ผ่าน middleware `auth` บางส่วนมี `kingdom.selected` เพิ่ม
 
-### All tables (in dependency order)
-
-#### Core
-| Table | Description |
+### Auth & Onboarding
+| URI | Controller |
 |---|---|
-| `users` | Auth + role. Fields: id, name, email, password, role, timestamps |
-| `characters` | One per user. Fields: id, user_id, name, status, role, avatar, kingdom_id (home Kingdom, FK→kingdoms, cascadeOnDelete, null until onboarding+kingdom choice complete), current_kingdom_id (FK→kingdoms, nullOnDelete, last-visited), current_city_id (FK→cities, nullOnDelete, last-visited sub-city), gold, title, backstory, custom_frame, timestamps |
-| `character_stats` | 1:1 with character. Fields: id, character_id, level, exp, exp_to_next, hp, mana, str, agi, int, stage_1/2/3_completed (onboarding essay gates), rejection_reason (nullable, set when admin sends onboarding back for revision), timestamps |
-| `character_badges` | Badges earned. Fields: id, character_id, badge_id, acquired_at |
+| `/register`, `/login`, `/logout` | `AuthController` |
+| `/onboarding`, `/onboarding/stage` | `OnboardingController` |
+| `/choose-kingdom` | `KingdomSelectionController` |
+| `/pending` | closure → redirect ไป onboarding (legacy alias) |
 
-#### World
-| Table | Description |
-|---|---|
-| `kingdoms` | 5 kingdoms + Celestia (top-level tier, was `cities`). Fields: id, name, description, color, icon, is_active, timestamps |
-| `cities` | Sub-cities per kingdom (was `villages`). Fields: id, kingdom_id (FK→kingdoms), name, description, is_training_zone, write_min_level, write_min_role, require_approval, read_min_level, read_min_role, timestamps |
-| `travel_permits` | Grants a character temporary write-access to a non-home Kingdom. Fields: id, item_id (FK→items, its own minted `permit`-type Item), character_id, kingdom_id, granted_by (FK→users), valid_days, activated_at, expires_at, timestamps |
+### หน้าผู้เล่น
+| หมวด | URI | Controller |
+|---|---|---|
+| หน้าแรก | `/` | `HomeController` |
+| เมือง/กระทู้ | `/cities/{id}`, `/cities/{id}/threads[/create]`, `/threads/{id}[/edit]`, `/threads/{id}/{moderate,restore}`, `DELETE /threads/{id}/force` | `CityController`, `ThreadController` |
+| โพสต์ | `/threads/{id}/posts`, `/posts/{id}/approve`, `/posts/{id}/edit` | `ThreadController` |
+| ตัวละคร | `/character`, `/character/edit`, `/character/stat`, `/character/{id}` | `CharacterController` |
+| เพื่อน | `/character/{character}/friend-request`, `DELETE .../friend`, `/friend-requests/{id}/{accept,reject}` | `FriendController` |
+| Event | `/events[/{id}]`, `/events/{id}/{join,leave}` | `EventController` |
+| คลังของ | `/inventory`, `/inventory/permits/{id}/activate` | `InventoryController` |
+| แจ้งเตือน | `/notifications`, `.../{id}/open`, `.../{id}/read`, `.../read-all` | `NotificationController` |
+| จดหมายถึงสภา | `/council/letters[/{id}]`, `.../reply` | `CouncilLetterController` |
+| จดหมายเหตุ | `/archive`, `/chronicles[/{id}]` | `ArchiveController`, `WorldChronicleController` |
+| ทำเนียบ/อันดับ | `/players`, `/leaderboard` | `PlayerController` |
+| รางวัล/กิจกรรม | `/rewards`, `/activity` | `RewardHistoryController`, `RecentActivityController` |
+| เศรษฐกิจ | `/market...`, `/market/shop...`, `/blacksmith...` | `MarketController`, `ShopController`, `BlacksmithController` |
+| ป้ายประกาศ | `/notice-boards/{id}`, `.../threads[/create]`, `/notice-board-threads/{id}`, `.../posts` | `NoticeBoardController`, `NoticeBoardThreadController` |
 
-#### Event System
-| Table | Description |
-|---|---|
-| `events` | Admin-created events. Fields: id, title, type (flash/location/story_arc/crisis), kingdom_id (was city_id), created_by, status (draft/active/closed/archived), description, start_at, end_at, timestamps |
-| `event_participants` | Characters joined. Fields: id, event_id, character_id, joined_at. Unique: (event_id, character_id) |
-| `event_requirements` | Stat/item gates. Fields: id, event_id, req_type (stat/item/level/city), req_key, min_value |
+### API (React SPA เรียกใช้)
+`GET /api/cities/{id}` และ `GET /api/threads/{id}/posts` เป็น public
+ส่วน `POST /api/threads/{id}/posts`, `/api/threads/{id}/moderate`, `/api/posts/{id}/approve`,
+`PUT|DELETE /api/posts/{id}` ต้อง auth — ทั้งหมดอยู่ใน `ThreadController`
 
-#### RP System
-| Table | Description |
-|---|---|
-| `threads` | RP story threads. Fields: id, city_id (was village_id), event_id, title, exp_override (nullable, explicit per-thread EXP override — see `LevelingService::resolveExpAmount`), status (open/pending/rejected/locked/archived), created_by, timestamps |
-| `posts` | RP posts. Fields: id, thread_id, character_id, content, status (pending/approved), timestamps |
-| `post_reactions` | **Removed 2026-07-25** — Witness System UI/route/controller action pulled from the product; table + `Post`/`PostReaction` model relations left in place but unused. Fields: id, post_id, character_id, type, timestamps |
+### Admin
+`/admin/*` — Filament panel, guard `admin`, ผ่าน `EnsureAdminAccess` (ต้อง moderator ขึ้นไป)
+มี custom page เพิ่ม: `/admin/thread-trash`
 
-#### Economy
-| Table | Description |
-|---|---|
-| `items` | Master item catalog. Fields: id, name, type (weapon/armor/consumable/material/key_item/currency/permit), rarity (common→legendary), description, bonus_str/agi/int/hp/mana, is_tradeable, is_active, timestamps |
-| `inventories` | Character inventory. Fields: id, character_id, item_id (FK→items), quantity, timestamps |
-| `market_listings` | Player market. Fields: id, seller_id, item_id, quantity, price, status, timestamps |
-| `crafting_recipes` | Shop + Blacksmith craft formulas. Fields: id, name, category (shop/blacksmith), result_item_id, result_quantity, gold_cost (shop), craft_duration_minutes (blacksmith), is_active, timestamps |
-| `crafting_recipe_materials` | Materials required per recipe (many per recipe). Fields: id, recipe_id (FK→crafting_recipes), material_item_id (FK→items), quantity_required, timestamps |
-| `crafting_orders` | A blacksmith crafting job multiple characters can contribute materials to. Fields: id, recipe_id, created_by (FK→characters), token (UUID, shareable), status (open/crafting/ready/claimed), started_at, ready_at, claimed_by, claimed_at, timestamps |
-| `crafting_order_contributions` | Per-character material contributions to an order. Fields: id, order_id, character_id, item_id, quantity, timestamps |
+---
 
-#### Rewards
-| Table | Description |
-|---|---|
-| `rewards` | Reward templates per event. Fields: id, event_id, item_id, item_quantity, gold_amount, exp_amount, note, timestamps |
-| `reward_logs` | Permanent reward audit log. Fields: id, character_id, event_id, reward_id, item_id, item_quantity, gold_received, exp_received, given_at, timestamps |
+## Database
 
-#### Progression
-| Table | Description |
-|---|---|
-| `badges` | Master badge catalog. Fields: id, name, icon, description, condition_type, condition_value |
+**41 ตารางใน DB จริง** (รวมตารางระบบของ Laravel: migrations, sessions, cache, cache_locks, jobs, job_batches, failed_jobs, password_reset_tokens)
 
-#### Admin Tools
-| Table | Description |
-|---|---|
-| `world_chronicles` | Freeform admin-written world lore, no longer required to link to an Event. Fields: id, event_id (nullable, nullOnDelete), title (nullable), category (nullable: Lore/History/War/Political/Other), content, generated_at, is_published |
-| `notifications` | In-app + Discord webhook log. Fields: id, type, target_id, message, channel, sent_at, is_read |
+> ⚠️ คอลัมน์ที่ระบุด้านล่างทั้งหมดมาจาก `SHOW COLUMNS` บน DB จริง — เพื่อยืนยัน
+> อย่าเชื่อชื่อไฟล์ migration เพียงอย่างเดียว ให้ query ดูของจริงก่อนเสมอ
 
-### Key relationships
+### Core
+
+**`users`** — auth + role
+**`characters`** — 1 ตัวต่อ user
+```
+id, user_id(unique), kingdom_id, name, backstory, status(default 'pending'),
+avatar, current_kingdom_id, current_city_id, gold, title, custom_frame, timestamps
+```
+> **ไม่มีคอลัมน์ `city_id`** — มีแต่ `kingdom_id` (บ้านเกิด) และ `current_city_id` (ที่อยู่ล่าสุด)
+
+**`character_stats`** — 1:1 กับ character
+```
+id, character_id, level, hp, mana, agi, str, int, stat_points_available,
+daily_exp, daily_exp_date, exp, exp_to_next,
+stage_1/2/3_completed, stage_1/2/3_rejection_reason, timestamps
+```
+> เหตุผลการปฏิเสธ onboarding เก็บ **ต่อด่าน** (3 คอลัมน์แยก) ไม่ใช่ตัวเดียวรวม
+
+**`character_badges`**, **`badges`** — ระบบให้เหรียญตรา
+**`onboarding_entries`** — คำตอบเรียงความ 3 ด่าน
+
+### World
+
+**`kingdoms`**
+```
+id, name, description, color(default #ffffff), icon, is_active, sort_order, timestamps
+```
+**`cities`** — เมืองย่อยใต้ kingdom
+```
+id, kingdom_id, name, description, banner_image, is_training_zone,
+write_min_level, write_min_role, require_approval, read_min_level, read_min_role, timestamps
+```
+**`travel_permits`** — สิทธิ์ให้เดินทางข้ามอาณาจักรที่ไม่ใช่บ้านเกิด
+
+### RP
+
+**`threads`**
+```
+id, city_id, event_id, exp_override, created_by, title, banner_image, location_label,
+status, thread_category, moderation_message, deleted_at, archived_at, timestamps
+```
+> มี **soft delete** (`deleted_at`) และ `thread_category` (ดู Enums)
+
+**`posts`** — โพสต์ RP (`status`: pending/approved)
+
+### Event
+
+`events`, `event_participants`, `event_requirements`
+
+### Economy
+
+`items`, `inventories`, `market_listings`,
+`crafting_recipes`, `crafting_recipe_materials`,
+`crafting_orders`, `crafting_order_contributions`
+
+### Rewards
+
+`rewards` (template ต่อ event), `reward_logs` (audit log ถาวร — มี `post_id` ผูกกลับไปยังโพสต์ต้นทาง)
+
+### Social & Admin tools
+
+**`friend_requests`** — `id, from_character_id, to_character_id, status(pending/accepted/rejected), pair_key(UNIQUE), timestamps`
+> `pair_key` unique เพื่อกันสร้างข้อมูลซ้ำจากคำขอ 2 ฝั่งพร้อมกัน — กันเคส race condition
+
+**`friendships`** — `id, character_id_1, character_id_2, created_at` (ไม่มี `updated_at`)
+> เก็บเป็น **2 แถวต่อ 1 คู่เพื่อน** (ทิศทางละแถว) — ตอน unfriend ต้องลบทั้ง 2 แถว
+
+**`notifications`** — `id, user_id, type, title, body, data(json), link_type, link_id, read_at, timestamps`
+**`council_letters`** — จดหมายถึงสภา (ตอบกลับได้จากฝั่ง moderator+)
+**`notice_boards`**, **`notice_board_threads`**, **`notice_board_posts`** — ระบบป้ายประกาศ (เดิมชื่อ Islands)
+**`world_chronicles`** — บันทึกโลกที่แอดมินเขียนเอง
+**`app_settings`** — key/value store ทั่วไป (`AppSetting::get()/set()`)
+
+### ตารางที่ตายแล้ว
+
+**`post_reactions`** — เหลือจาก Witness System ที่ถอดออกแล้ว ไม่มี route/controller เรียกใช้
+มีแต่ Model relation (`Post::reactions()`, `PostReaction`) ค้างอยู่
+
+> `onboarding_slots` และ `ai_logs` ถูกลบออกจาก DB จริงเรียบร้อยแล้ว (มี migration drop ยืนยัน)
+
+### ความสัมพันธ์หลัก
 
 ```
-User (1) ──── (1) Character ──── (1) CharacterStat
-                    │
-                    ├──── (many) Inventory ──── (1) Item
-                    ├──── (many) CharacterBadge
-                    ├──── (many) TravelPermit ──── (1) Kingdom
-                    ├──── (many via event_participants) Event
-                    └──── (many) RewardLog
+User (1) ── (1) Character ── (1) CharacterStat
+                 ├── (many) Inventory ── (1) Item
+                 ├── (many) CharacterBadge
+                 ├── (many) TravelPermit ── (1) Kingdom
+                 ├── (many) OnboardingEntry
+                 ├── (many) RewardLog
+                 ├── (many) FriendRequest (sent / received)
+                 ├── (many) Friendship
+                 └── (many via event_participants) Event
 
-Kingdom (1) ──── (many) City ──── (many) Thread ──── (many) Post
-Kingdom (1) ──── (many) Event
-Kingdom (1) ──── (many) Character (home kingdom_id / current_kingdom_id)
+Kingdom (1) ── (many) City ── (many) Thread ── (many) Post
+Kingdom (1) ── (many) Event
+Thread  (many) ── (1) Event          → ต้องผูกถึงจะให้ reward ทำงาน
 
-Event (1) ──── (many) Reward
-Event (1) ──── (many) EventRequirement
-Event (1) ──── (many) EventParticipant
-
-CraftingRecipe (1) ──── (many) CraftingRecipeMaterial ──── (1) Item
-CraftingRecipe (1) ──── (many) CraftingOrder ──── (many) CraftingOrderContribution
+Event (1) ── (many) Reward / EventRequirement / EventParticipant
+CraftingRecipe (1) ── (many) CraftingRecipeMaterial ── (1) Item
+CraftingRecipe (1) ── (many) CraftingOrder ── (many) CraftingOrderContribution
 ```
 
 ---
 
-## Domain Model & Game Mechanics
+## Game Mechanics
 
-### Core game loop
+### Core loop
 ```
-Admin creates Event in a Kingdom
-  → Players write RP Posts in Threads
-  → Admin approves Posts
-  → Rewards auto-sync to character Inventory + Stats
+แอดมินสร้าง Event ในอาณาจักร
+  → ผู้เล่นผูก Thread เข้ากับ Event
+  → ผู้เล่นเขียนโพสต์ RP
+  → แอดมินอนุมัติโพสต์
+  → LevelingService แจก EXP + item + gold ให้อัตโนมัติ
 ```
+**Thread ต้องผูกกับ Event ผ่าน `threads.event_id` เท่านั้น** reward ถึงจะทำงาน
+โพสต์ที่อนุมัติในกระทู้ที่ไม่ผูก event จะไม่ได้อะไร (โดยตั้งใจ)
 
-### Onboarding flow (level 0 → 1)
+### Onboarding (level 0 → 1)
 
-Pure 3-essay review, no in-game posting requirement. `character_stats.stage_1/2/3_completed` gate progress; `OnboardingService` handles submission + promotion:
+ระบบเรียงความ 3 ด่านล้วน ไม่มีการโพสต์ในเกมเป็นเงื่อนไข
 
-1. Character registers at level 0, no `kingdom_id`.
-2. Player submits 3 stage essays (`OnboardingController::submitStage`, stored as `OnboardingEntry` rows) via `/onboarding/stage`.
-3. Admin reviews each character in `CharacterResource`/`EditCharacter` — **Approve** or **Reject with a required reason** (`rejection_reason`). Reject is *not* terminal: it deletes the character's `OnboardingEntry` rows, resets all 3 stage flags to false, and notifies the player (`NotificationService::notifyOnboardingRejected`) — a normal "send back for revision" loop, character `status` stays `pending`.
-4. Once all 3 stages are approved, `OnboardingService::checkAllComplete()` promotes the character to level 1.
-5. Level-1 character with no `kingdom_id` is redirected to `/choose-kingdom` (`KingdomSelectionController`) to pick a **permanent** home Kingdom (enforced client- and server-side — 403 if already set).
-6. Only after a kingdom is chosen can the character post in Threads (`EnsureKingdomSelected` / `kingdom.selected` middleware gate).
+1. สมัคร → character level 0, `status = pending`, ไม่มี `kingdom_id`
+2. ส่งเรียงความ 3 ด่าน (`OnboardingController::submitStage` → `OnboardingEntry`)
+3. แอดมินตรวจใน `CharacterResource`/`UserResource` — **Approve หรือ Reject เป็นรายด่าน**
+   (เลือก checkbox ว่าด่านไหนไม่ผ่าน + ใส่เหตุผลลง `stage_N_rejection_reason`)
+   Reject **ไม่ terminal** — reset flag ของด่านที่เลือกทั้งหมดให้ผู้เล่นแก้ไขใหม่ `status` ยังเป็น `pending`
+4. ครบ 3 ด่าน → `OnboardingService::checkAllComplete()` เลื่อนเป็น level 1
+5. level 1 ที่ยังไม่มี `kingdom_id` → บังคับไป `/choose-kingdom`
+6. เลือกอาณาจักรแล้วเท่านั้นถึงจะโพสต์ได้ (middleware `kingdom.selected`)
 
-> Superseded: an older 2-stage system (Stage A = 3 auto-approved posts in an `is_training_zone` City to fill "onboarding slots"; Stage B = earn `stage_b_exp` in a designated onboarding Event) was fully removed 2026-07-18 — no more `onboarding_slots` table, no training-zone/event-based EXP gating pre-level-1.
+> **ค่าที่เปลี่ยนไม่ได้**: `characters.kingdom_id` ถือเป็น immutable ยกเว้น `KingdomSelectionController::store`
+> (พยายามตั้งค่าครั้งที่ 2 ได้ 403)
 
-### Character rank (computed, not stored)
-`auto_rank` is an appended attribute on Character model, derived from approved post count:
+### EXP — ลำดับความสำคัญใน `LevelingService::resolveExpAmount()`
+```
+1. threads.exp_override        (ถ้ากำหนดไว้ ใช้เท่านี้)
+2. โซน auto-approve            → flat 1
+3. reward ของ event ที่ผูกอยู่
+4. ไม่เข้าเงื่อนไขไหนเลย       → 0
+```
+มี **daily EXP cap ต่อ level** คิดตาม timezone `Asia/Bangkok` (`daily_exp`, `daily_exp_date`)
 
-| Posts | Rank |
+### Rank ตัวละคร (คำนวณสด ไม่เก็บใน DB)
+`auto_rank` เป็น appended attribute บน Character คำนวณจากจำนวนโพสต์ที่อนุมัติแล้ว
+
+| โพสต์ | Rank |
 |---|---|
 | 0–4 | Stranger |
 | 5–19 | Wanderer |
@@ -202,124 +269,248 @@ Pure 3-essay review, no in-game posting requirement. `character_stats.stage_1/2/
 | 50–99 | Veteran |
 | 100+ | Legend |
 
+### 5 อาณาจักร
+
+> อ้างอิงจาก lore/seeder — **ยังไม่ได้ตรวจสอบข้อมูลจากตาราง `kingdoms`/`cities` จริง**
+> ก่อนใช้ชื่อหรือ id เป๊ะๆ ให้ query ดูก่อนเสมอ อย่าฮาร์ดโค้ดจากตารางนี้
+
+| อาณาจักร | เมืองหลวง | เอกลักษณ์ |
+|---|---|---|
+| Silvaria | Mokagi | ป่า เวทมนตร์ |
+| Aurantia | Viente | ที่ราบ อัศวิน กฎหมาย |
+| Kalif | Akancia | ทะเลทราย นักฆ่า ตลาดกลาง |
+| Frostwell | Alasia | หิมะ นักรบ |
+| Kyoren | Ainu | ตะวันออก จิตวิญญาณ |
+| Celestia | — | แลนด์มาร์คกลาง |
+
+การเขียนในเมืองของอาณาจักรอื่นต้องมี `TravelPermit` ที่ active ยกเว้นตรงกับ `current_kingdom_id`/`current_city_id`
+หรือเป็น moderator ขึ้นไป
+
 ### Event types
-| Type | Duration | Notes |
+
+| Type | ระยะเวลา | หมายเหตุ |
 |---|---|---|
-| flash | 2–6 hours | Auto-close when time expires |
-| location | 1–2 weeks | Tied to specific city |
-| story_arc | 1+ month | Changes world canon permanently |
-| crisis | 24–48 hours | Unannounced emergency |
+| flash | 2–6 ชม. | `exp_reward` **ต้อง = 1** (validation ใน EventResource) |
+| location | 1–2 สัปดาห์ | ผูกกับเมือง |
+| story_arc | 1 เดือนขึ้นไป | เปลี่ยน canon ของโลกถาวร |
+| crisis | 24–48 ชม. | ไม่ประกาศล่วงหน้า |
 
-### Soft class system
-Players allocate stat points on level-up. Stat thresholds + items gate event eligibility via `event_requirements`. No hard class selection — path emerges from stat choices (e.g. high Mana → mage path, high AGI → assassin path).
+ประเภทอื่นนอกจาก flash: `exp_reward` ต้องอยู่ในช่วง **3–15**
 
-### Witness System (removed 2026-07-25)
-Was: `post_reactions` table powering "at least one person witnesses and reflects back a character's growth." The UI (Witness/Inspired/Moved buttons on posts), the `post.react` route, and `ThreadController::reactPost()` have been removed at the owner's request. The `post_reactions` table and `Post`/`PostReaction` model relationships (`reactions()`, `hasReactionFrom()`) were left in place — dead code, not wired to any route — in case of a future revival.
+### เศรษฐกิจ
 
-### 5 Kingdoms
-| Kingdom | Capital (City) | Identity |
+| ระบบ | Controller | กลไก |
 |---|---|---|
-| Silvaria | Mokagi | Forest, magic |
-| Aurantia | Viente | Plains, knights, law |
-| Kalif | Akancia | Desert, assassins, central market |
-| Frostwell | Alasia | Snow, warriors |
-| Kyoren | Ainu | Eastern, spiritual |
-| Celestia | — | Neutral landmark |
+| ตลาดผู้เล่น | `MarketController` | ประกาศขาย/ซื้อต่อกันด้วย gold |
+| ร้านค้า | `ShopController` | ซื้อ recipe หมวด `shop` ทันที จ่าย gold **หรือ** ส่งวัตถุดิบ |
+| ช่างตีเหล็ก | `BlacksmithController` | `CraftingOrder` หลายคนช่วยกันลงวัตถุดิบผ่าน token URL → ครบแล้ว "หลอม" ตาม `craft_duration_minutes` → เคลม |
 
-A character's home Kingdom is permanent once chosen (see Onboarding flow above). Writing in a non-home Kingdom's Cities requires an active `TravelPermit` for that Kingdom, unless the City is the character's `current_kingdom_id`/`current_city_id` (last-visited) or the character is moderator+.
-
-### Economy: Market, Shop, Blacksmith
-| System | Controller | Mechanic |
-|---|---|---|
-| Player Market | `MarketController` | Peer-to-peer listing/buying with gold |
-| Shop | `ShopController` | Buy admin-defined `crafting_recipes` (category `shop`) instantly, paying gold **or** turning in materials |
-| Blacksmith | `BlacksmithController` | Multi-player `CraftingOrder`: any character starts an order for a `blacksmith`-category recipe (shareable token URL), others contribute required materials (`CraftingOrderContribution`) until complete, then it "cooks" for `craft_duration_minutes` before the creator/contributors can claim the result item |
+### Soft class
+ไม่มีการเลือกอาชีพตายตัว — แจกแต้ม stat ตอน level up แล้ว `event_requirements` เป็นตัวกำหนดว่าใครเข้าร่วม event ไหนได้
+เส้นทางเกิดจากการเลือกลงแต้ม (Mana สูง → สายเวท, AGI สูง → สายลอบเร้น)
 
 ---
 
-## User Roles (`app/Enums/UserRole.php`)
+## User Roles
 
-`superadmin` → `admin` → `moderator` → `player`
+`superadmin` → `admin` → `moderator` → `player` (`app/Enums/UserRole.php`)
 
-- Only non-Player roles can access `/admin`
-- SuperAdmin is the only role that can view/edit UserResource
-- `isAtLeastAdmin()` helper used for access checks
-- `isSuperAdmin()` for superadmin-only actions
-
----
-
-## Avatar Frame System
-
-SVG Art Deco corner frames — overlay on top of avatar image, no database table needed. Frame is derived directly from character role in Blade component.
-
-**Component**: `<x-avatar-frame role="{{ $character->role }}" initial="T" :size="140" />`
-
-| Role | Color | Style |
-|---|---|---|
-| guardian / admin | #c8a84b | fan corners (gold) |
-| knight / mage | #6890c8 / #9b8fc8 | step corners |
-| archer | #c87c3a | fan corners (orange) |
-| healer | #6abf88 | step corners (green) |
-| wanderer | #8ab0c8 | simple L-bracket |
-
-Sub-components: `resources/views/components/frames/_fan-corner.blade.php`, `_step-corner.blade.php`, `_simple-corner.blade.php`
+- Player เข้า `/admin` ไม่ได้ (`canAccessPanel()`)
+- `EnsureAdminAccess` ต้องการ **moderator ขึ้นไป**
+- helper: `isSuperAdmin()`, `isAtLeastAdmin()`, `isAtLeastModerator()`, `isAdminGroup()`
+- **เกือบทุก Filament Resource ตั้ง `canDelete()` = superadmin เท่านั้น** — pattern มาตรฐาน ทำตามทุกครั้งที่สร้าง resource ใหม่
 
 ---
 
-## Filament Resources (`app/Filament/Resources/`)
+## Enums
 
-| Resource | Notes |
+มีแค่ **2 ไฟล์** ใน `app/Enums/` — ที่เหลือใช้เป็น string/enum ระดับคอลัมน์ DB ล้วน
+(ไม่มี Enum สำหรับ thread status, event type, item rarity)
+
+**`UserRole`** — superadmin / admin / moderator / player
+
+**`ThreadCategory`** (implements HasLabel, HasColor) — 8 ค่า:
+`announcement`, `system_update`, `event`, `rule_policy`, `guide`, `faq`, `bug_report`, `general_discussion`
+มี `getColor()` สำหรับ Filament และ `bgHex()`/`textHex()` สำหรับ badge ฝั่งเว็บ
+
+---
+
+## Services
+
+| Service | หน้าที่ |
 |---|---|
-| UserResource | SuperAdmin only. Password field uses `dehydrated(fn($s)=>filled($s))` + `dehydrateStateUsing(Hash::make)` — never load hash into field |
-| CharacterResource | Admin approve/reject onboarding (reject requires a `rejection_reason`, non-terminal — see Onboarding flow). Has `BadgesRelationManager` + `InventoryRelationManager` |
-| EventResource | Full CRUD + inline Rewards Repeater + Requirements Repeater. `created_by` auto-set in CreateEvent page |
-| ItemResource | Master item catalog |
-| RewardResource | Reward templates per event |
-| KingdomResource | Top-level Kingdom CRUD (replaces old CityResource). SuperAdmin-only delete |
-| CityResource | Sub-city CRUD (replaces old VillageResource) |
-| CraftingRecipeResource | Shop/Blacksmith recipe CRUD with inline materials Repeater (auto-manages `crafting_recipe_materials`) |
-| TravelPermitResource | Issuing a permit **mints a new dedicated `permit`-type Item** per issuance (not a shared item) and grants it via Inventory — see `CreateTravelPermit::mutateFormDataBeforeCreate` |
-| ThreadResource, PostResource | Standard CRUD |
-| WorldChronicleResource | Freeform `title`/`category` fields, no longer requires an Event link; `generated_at` auto-set on create |
-
-Custom Filament login page: `app/Filament/Pages/Auth/Login.php`
-
-**RewardLog has no Filament Resource** — read-only audit data, never editable by Admin.
+| `LevelingService` | หัวใจของระบบรางวัล: `handlePostApproved()`, `addExp()` (มี daily cap), `resolveExpAmount()`, `distributeEventRewards()` (แจกครั้งเดียวต่อ reward template ต่อ character), `promoteToLevel1()`, `checkLevelUp()` |
+| `OnboardingService` | `submitStage()`, `nextStage()`, `checkAllComplete()` |
+| `NotificationService` | `notifyXxx()` ~20 method — เขียน `Notification::create()` ตรงๆ **ไม่มี queue/job** |
+| `FriendService` | `sendRequest()` (กันขอตัวเอง/ซ้ำ + cooldown 1 วันหลังถูกปฏิเสธ), `accept()` (สร้าง Friendship 2 แถวใน transaction แล้วลบ request), `reject()`, `unfriend()` |
 
 ---
 
-## Frontend (`resources/frontend/vaelthorn-ui/`)
+## Middleware
 
-Entry: `main.tsx` → `app/App.tsx` (React Router) → routes in `app/routes.ts`
-
-UI components: `app/components/ui/` — Radix UI primitives + Tailwind
-Libraries: Recharts (charts), React DnD (drag-drop), React Hook Form (forms)
-
-**Note**: as of the 2026-07-18 restructure, the SPA has no in-app city/kingdom browsing UI (map icons removed from `Navbar`/`BottomNav`/`Footer`). City browsing happens via Blade (`/cities/{id}`); the SPA's `CityPage.tsx` (route `city/:cityId`, was `VillagePage.tsx`/`village/:villageId`) is reachable only by direct link, not primary nav. Market/Events/Chronicles/Rewards nav items render as plain `<a>` (full page load) rather than React Router `<Link>` since those pages aren't SPA-ported.
+| Middleware | Alias | หน้าที่ | สถานะ |
+|---|---|---|---|
+| `EnsureAdminAccess` | `admin.access` | guard `admin` + ต้อง moderator ขึ้นไป ไม่งั้น 403 | ✅ ใช้จริงใน `AdminPanelProvider` |
+| `EnsureKingdomSelected` | `kingdom.selected` | ถ้า status approved/active + ไม่มี kingdom_id + level ≥1 + ไม่ใช่ mod → ส่งไป `/choose-kingdom` | ✅ ใช้จริงใน route กระทู้/เมือง |
+| `UseAdminSessionCookie` | — | ควรเปลี่ยนชื่อ cookie เป็น `vaelthorn_admin_session` | ❌ **ไม่เคยถูกเรียกใช้งานจริง** ดู Known Issues |
 
 ---
 
-## Key Conventions
+## Filament — ข้อควรระวังรายตัว
 
-- **Registration**: creates User + Character + CharacterStat atomically in `AuthController::register`
-- **Moderation**: thread approve/reject, post approve/delete restricted to `admin`/`moderator` via inline middleware
-- **Password**: never load existing hash into Filament form field — use `dehydrated(fn($s)=>filled($s))` only
-- **Reward distribution**: always write to `reward_logs` first before updating inventory/stats — prevents double-reward
-- **exp_to_next**: stored in `character_stats`, not computed — Admin/system sets the threshold per level
-- **item_id in inventories**: always FK→items, never free-text item_name
-- **current_city_id / current_kingdom_id in characters**: FK with nullOnDelete — never plain unsignedBigInteger
-- **kingdom_id in characters**: home Kingdom, permanent once set (post-onboarding) — treat as immutable outside `KingdomSelectionController::store`
-- **Onboarding rejection**: never set character `status` to a terminal `rejected` value — reset stage flags + store `rejection_reason` instead, so the player can resubmit (see `CharacterResource::rejectCharacter`)
-- **Crafting order completion**: check materials-complete and flip `crafting_orders.status` inside the same DB transaction as the triggering contribution — see `BlacksmithController::contribute`
+**Custom pages:** `Pages/Auth/Login.php` (login ด้วย username แทน email),
+`Pages/ThreadTrash.php` (ถังขยะกระทู้ soft-deleted, admin+ เท่านั้น, แสดงวันที่เหลือ = 3 − diffInDays)
+
+| Resource | ข้อควรรู้ |
+|---|---|
+| `CharacterResource` | `canCreate()` = false. logic คุม Approve/Reject อยู่ใน **static method** (`approveCharacter`, `rejectCharacter`, `rejectFormSchema`, `handleRejectSubmit`) ที่ **`UserResource` เรียกใช้ร่วมกัน** — แก้ตรงนี้กระทบทั้ง 2 หน้า |
+| `UserResource` | password ใช้ `dehydrated(fn($s)=>filled($s))` + `dehydrateStateUsing(Hash::make)` — **ห้ามให้โหลด hash เดิมเข้า field**. field `role` ถูก disable + ไม่ dehydrate ถ้าไม่ใช่ superadmin. ฝัง section RPG Stats/Onboarding ของ character ผ่าน relationship |
+| `EventResource` | **ไม่มี Repeater ของ Rewards/Requirements ในฟอร์มเอง** ฟอร์มมีแค่ title/type/status/kingdom/exp_reward/description/start-end. `exp_reward` มี validation ผูกกับ type. `created_by` auto-set ใน `CreateEvent` |
+| `RewardResource` | เป็น **top-level resource แยก** ผูกกับ event ด้วย `Select::relationship('event','title')` |
+| `ThreadResource` | รองรับ soft-delete ครบ (TrashedFilter/restore/forceDelete). action เยอะมาก: approve / requestEdit / reject / lock / unlock / archive / unarchive / move |
+| `TravelPermitResource` | `CreateTravelPermit::mutateFormDataBeforeCreate` **สร้าง Item ใหม่ทุกครั้งที่ออกใบอนุญาต** (type `permit`, `is_tradeable` = false) แล้วค่อยเรียก `Inventory::firstOrCreate` — ไม่ใช่ item ร่วมกัน |
+| `CraftingRecipeResource` | มี `Repeater::make('materials')->relationship('materials')` จัดการ `crafting_recipe_materials` อัตโนมัติ |
+| `RewardAuditResource` | อ่านอย่างเดียวเต็มรูปแบบ — `canCreate/canEdit/canDelete` = false ทั้งหมด, form = `[]` **ห้ามเปิดให้แก้ไข** |
+| `KingdomResource`, `NoticeBoardResource` | create page auto-set `sort_order` = max + 1 |
+| `WorldChronicleResource` | create page auto-set `generated_at` = now() |
+| `PostResource` | `canCreate()` = false. ดู/แก้ไขต้อง moderator+, ลบต้อง admin+ |
+
+> **`event_requirements` ไม่มี Filament Resource เลย** — ตารางและ model มีจริง และ `EventController` เอาไปตรวจสิทธิ์ join จริง
+> แต่ไม่มีช่องทางสร้าง/แก้ไขจากหน้าแอดมินเลยแม้แต่นิดเดียว ต้องเขียนลง DB ตรงๆ
+
+---
+
+## Frontend
+
+### Blade คือของจริง — React คือส่วนเสริม
+
+หน้าเว็บที่ผู้เล่นใช้จริงทั้งหมดเป็น **Blade** React SPA อยู่ที่ `/app` เท่านั้นและเข้าถึงได้น้อยมาก
+**สร้างของใหม่ให้ทำผ่าน Blade ก่อนเสมอ** เว้นแต่จะสั่งเป็นอย่างอื่น
+
+### Quill Editor — จุดที่เปราะบางที่สุดจุดหนึ่ง
+
+โหลดจาก CDN `quill@1.3.7` theme Snow ใน **5 view**:
+`thread.blade.php`, `thread-create.blade.php`, `post-edit.blade.php`,
+`notice-board-thread.blade.php`, `notice-board-thread-create.blade.php`
+
+> ⚠️ มี partial เตรียมไว้ (`partials/quill-editor-{head,scripts}.blade.php`) แต่**ใช้จริงแค่ 2 ไฟล์ notice-board**
+> อีก 3 ไฟล์ copy โค้ดเองทั้งดุ้น → **เกิด drift แล้ว** แต่ละจุดเวอร์ชันไม่เท่ากัน ต้องเช็คทุกจุดถ้าจะแก้
+
+Custom format ที่เขียนเองทั้งหมด (อย่าลบโดยไม่เช็คก่อน):
+- **font whitelist เอง**: sarabun, prompt, kanit, noto-serif-thai, mitr, charm, trirong, monospace
+- **`dropcap`** — custom inline Blot ทำตัวอักษรใหญ่ขึ้นต้นย่อหน้า + ปุ่ม toolbar เอง
+- **`indentright`** — custom block Attributor เลียนแบบ indent ด้านซ้ายแต่กลับด้านขวา
+- **size whitelist เป็น px ตรงๆ** (12px–48px) แทน H1-H3
+- **link/image handler ใช้ `window.prompt()`** — เพราะ CSS zoom ของเว็บทำให้ tooltip เดิมของ Quill วางตำแหน่งเพี้ยน
+- **color picker เขียนเอง** (HSL slider + hex input) ไม่ใช่ module ของ Quill
+- **keybinding Tab** — บรรทัดที่ไม่ใช่ list/indent/code-block จะแทรก NBSP แทน indent ของ Quill
+  (indent ของ Quill กระทบทั้งย่อหน้าที่ wrap ไม่ตรงกับสไตล์ย่อหน้าไทย)
+- **Tab-Tab ใส่เครื่องหมายคำพูด `"`** สำหรับเปิดบทสนทนา RP — **มีเฉพาะใน `thread.blade.php`**
+  ยังไม่ถูกก็อปไปอีก 4 ไฟล์
+
+### Design tokens — มี 2 ชุด แยกคนละระบบ
+
+| | ไฟล์ | ตัวแปร |
+|---|---|---|
+| **Blade** (ใช้เป็นหลัก) | `resources/css/vaelthorn-theme.css` (Tailwind v4 `@theme`) | `--color-gold(-dark)`, `--color-copper`, `--color-bg(-elevated/-subtle)`, `--color-border`, `--color-text(-muted/-subtle)`, `--font-display`, `--font-decorative`, `--font-chronicle` |
+| **React SPA** | `resources/frontend/vaelthorn-ui/styles/theme.css` (สไตล์ shadcn/ui) | `--background`, `--gold`, `--card`, `--primary`, `--sidebar-*`, `--city-*` ฯลฯ |
+
+**สร้าง UI ใหม่ทั้งหมดให้ทำผ่าน Blade ก่อนเสมอ อย่าเข้าใจผิดว่า React คืออนาคตอย่างเดียว**
+
+### ฟอนต์
+
+| ที่ไหน | ฟอนต์ |
+|---|---|
+| Admin panel | Noto Sans Thai (ตั้งใน `AdminPanelProvider` ผ่าน GoogleFontProvider) |
+| Frontend หัวข้อ/ตกแต่ง | Cinzel / Cinzel Decorative |
+| Frontend เนื้อหา | EB Garamond |
+| ตัวอักษรไทย | Noto Serif Thai (fallback) |
+| โหลดมาแต่ไม่ผูกกับ `--font-*` | Crimson Text, Trirong |
 
 ---
 
 ## Testing
 
-PHPUnit, two suites (`Unit`, `Feature`) under `tests/`. Test environment: in-memory SQLite (configured in `phpunit.xml`). No JS test runner configured.
+PHPUnit 2 suite (`Unit`, `Feature`) — test env เป็น **in-memory SQLite** (`phpunit.xml`) ไม่มี JS test runner
+
+**สถานะล่าสุด: ผ่าน 36/36 tests, 195 assertions (~34 วินาที)**
+
+| ไฟล์ | ทดสอบอะไร |
+|---|---|
+| `EconomyFlowTest` | ซื้อของ shop (จ่าย/ไม่พอ gold), blacksmith 2 คนช่วยกันคราฟต์ + เฉพาะผู้ร่วมเคลมได้, activate travel permit, กันซื้อ listing ซ้ำ |
+| `OnboardingKingdomFlowTest` | flow เต็มตั้งแต่ onboarding จนโพสต์แรกได้ |
+| `EventThreadIntegrationTest` | thread ผูก event แจก reward + auto-join, thread ไม่ผูก event ไม่กระทบ, tag แสดงถูก |
+| `EventStatsTest` | จำนวนผู้เข้าร่วม + reward rate ในตาราง event |
+| `EventCloseActionTest` | ปิด event → ล็อคกระทู้ + แจ้งเตือน, ไม่แตะกระทู้ที่ยังไม่ moderate |
+| `FriendshipTest` | ครบวงจร: ส่ง/กันซ้ำ/accept 2 ฝั่ง/reject + cooldown/unfriend/user ไม่มี character ได้ 403 ไม่ใช่ 500/กดซ้ำไม่พัง |
+| `NoticeBoardTest` | แอดมินสร้างได้ player สร้าง/ตอบไม่ได้, board ว่างไม่ error |
+| `NotificationUrlTest` | URL resolve ถูกแม้ `link_id` เป็น null |
+| `MakeSuperAdminCommandTest` | คำสั่ง promote superadmin |
+
+---
+
+## Conventions
+
+> ส่วนนี้คือข้อบังคับที่ต้องเคารพเมื่อแก้โค้ดต่อจากนี้
+> ยังไม่ได้เปิดโค้ดตรวจว่าเป็นจริงทุกจุด (โดยเฉพาะ `nullOnDelete` ของ FK
+> และขอบเขต transaction ของ crafting/reward) — ถ้าจะแก้ตรงนี้ให้เปิดดูของจริงก่อน
+
+- **สมัครสมาชิก**: สร้าง User + Character + CharacterStat แบบ atomic ใน `AuthController::register`
+- **Reward**: เขียน `reward_logs` **ก่อน** อัปเดต inventory/stats เสมอ — กันแจกซ้ำ
+- **`exp_to_next`**: เก็บใน DB ไม่คำนวณสด — แอดมิน/ระบบตั้งค่าต่อ level
+- **`inventories.item_id`**: FK → `items` เสมอ ห้ามใช้ item_name แบบข้อความ
+- **`current_city_id` / `current_kingdom_id`**: FK เป็น `nullOnDelete` ห้ามใช้ unsignedBigInteger เฉยๆ
+- **`characters.kingdom_id`**: บ้านเกิด เปลี่ยนที่เดียวคือ `KingdomSelectionController::store`
+- **แก้ไข onboarding**: อย่าตั้ง `status` เป็นค่า terminal — reset flag ของด่านนั้น + เก็บเหตุผลลง `stage_N_rejection_reason`
+- **Crafting order**: เช็ควัตถุดิบครบและพลิก `crafting_orders.status` ใน **transaction เดียวกัน** กับการลงวัตถุดิบที่ทำให้ครบ
+- **Moderation**: approve/reject กระทู้และโพสต์จำกัดที่ admin/moderator ผ่าน inline middleware
+
+---
+
+## 🧭 Known Issues & Debt
+
+> ส่วนนี้คือ "ของที่ยังไม่จริง" ทั้งหมด — เขียนไว้เพื่อไม่ให้ใครเข้าใจว่าทำเสร็จแล้ว
+
+### 🔴 บั๊กที่กระทบผู้ใช้จริง
+
+**1. Session cookie ของ `/admin` ไม่ได้แยกจาก frontend**
+`UseAdminSessionCookie` middleware มีอยู่ในโค้ด แต่**ไม่เคยถูกเรียกใช้งานที่ไหนเลย** — ไม่มีใน
+`bootstrap/app.php` alias, ไม่มีใน `AdminPanelProvider::$middleware` (ยืนยันด้วย grep ทั้ง repo)
+guard `web` และ `admin` ใน `config/auth.php` ทั้งคู่ใช้ driver `session` ใช้ cookie `vaelthorn_session` เหมือนกัน
+
+**อาการ:** ผู้เล่น login หน้าเว็บอยู่แล้วเปิดแท็บใหม่ (CSRF token ผูกกับ session เดียวกัน) →
+แอดมิน login `/admin` อีกแท็บ (session regenerate ตามมาตรฐาน Laravel) → ผู้เล่นกดส่งฟอร์มเดิม → **419**
+
+*ทดสอบด้วยเครื่องมือ HTTP จริง (curl จำลอง session cookie + CSRF, 2026-08-03) — reproduce ได้จริง*
+*ยังไม่มี automated test ครอบคลุมกรณีนี้ → ควรเขียน test เพิ่มด้วย*
+
+### 🟠 Dead code ที่ควรลบ (ถ้าไม่มีแผนจะกลับมาใช้)
+
+| ไฟล์ | ปัญหา |
+|---|---|
+| `app/Services/EnsureUserCharacter.php` | ไม่มีจุดเรียกใช้เลย และ `Character::create([...'city_id'...])` อ้างคอลัมน์ที่**ไม่มีอยู่จริง** — เรียกเมื่อไรพังทันที |
+| `app/Models/GameNotification.php` | ชี้ตาราง `notifications` เหมือน `Notification` แต่ `$fillable`/`$casts` อ้างคอลัมน์ `target_id, message, channel, sent_at, is_read` ที่**ไม่มีใน schema จริง** ไม่มีจุดเรียกใช้ ตัวที่ใช้จริงทั้งระบบคือ `Notification` |
+| `post_reactions` + `Post::reactions()` + `PostReaction` | ซากของ Witness System ที่ถอดออกแล้ว |
+
+### 🟡 จุดต้องระวัง
+
+- **`event_requirements` ไม่มี UI** — แอดมินผูกเงื่อนไข event จากหน้าเว็บไม่ได้เลย
+- **Quill drift** — custom format ถูก copy ทำใน 5 ไฟล์ Tab-Tab มีแค่ไฟล์เดียว ควรรวมเข้า partial ให้หมด
+- **`characters.status` เก็บเป็น string ธรรมดา ไม่ใช่ enum** — DB default เป็น `pending` แต่ `EnsureKingdomSelected`
+  เช็คทั้ง `approved` และ `active` ควรกลบให้เหลือชุดเดียวเลยถ้าเป็นไปได้
+- **React SPA มีของเหลือจาก scaffold** — `.dark{}` OKLCH block (เว็บเป็น dark ทั้งหมดอยู่แล้ว),
+  `styles/fonts.css` โหลดฟอนต์ซ้ำคนละ weight, `body { font-family: 'Inter' }` ไม่ผูกกับ `--font-*`
+- **`SESSION_COOKIE` ไม่มีใน `.env.example`**
+
+### ระบบที่เคยมีเอกสารอ้างถึงแต่**ไม่มีอยู่จริง**
+
+- **Witness System** (post reactions) — ถอดออก 2026-07-25
+- **Onboarding แบบ 2 stage** (training zone + EXP gate) — ถอดออก 2026-07-18 ตาราง `onboarding_slots` ถูกลบแล้ว
+- **AI tooling** (สรุปโพสต์/สร้าง chronicle อัตโนมัติ) — ไม่เคยทำ ตาราง `ai_logs` ถูกลบแล้ว และ**ไม่อยู่ในแผน**
 
 ---
 
 ## Target Scale
 
-~20 active players/day, ~80 posts/day. Admin workload reduction is a critical design goal. AI-assisted tooling (post summarization, chronicle generation) was considered but is out of scope — not implemented and not planned.
+ผู้เล่นต่อวันอยู่ที่ ~20 คน โพสต์ ~80 โพสต์/วัน
+**การลดภาระแอดมินคือเป้าหมายการออกแบบที่สำคัญที่สุด** — ฟีเจอร์ใหม่ให้เอามุมมองนี้เป็นหลักเสมอ
