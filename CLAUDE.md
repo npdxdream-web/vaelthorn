@@ -352,7 +352,7 @@ CraftingRecipe (1) ── (many) CraftingOrder ── (many) CraftingOrderContri
 |---|---|---|---|
 | `EnsureAdminAccess` | `admin.access` | guard `admin` + ต้อง moderator ขึ้นไป ไม่งั้น 403 | ✅ ใช้จริงใน `AdminPanelProvider` |
 | `EnsureKingdomSelected` | `kingdom.selected` | ถ้า status approved/active + ไม่มี kingdom_id + level ≥1 + ไม่ใช่ mod → ส่งไป `/choose-kingdom` | ✅ ใช้จริงใน route กระทู้/เมือง |
-| `UseAdminSessionCookie` | — | ควรเปลี่ยนชื่อ cookie เป็น `vaelthorn_admin_session` | ❌ **ไม่เคยถูกเรียกใช้งานจริง** ดู Known Issues |
+| `UseAdminSessionCookie` | — | เปลี่ยนชื่อ cookie เป็น `vaelthorn_admin_session` | ✅ ลงทะเบียนเป็นตัวแรกใน `AdminPanelProvider::$middleware` (ก่อน `StartSession`) — มี `AdminSessionCookieTest` คุม regression |
 
 ---
 
@@ -471,18 +471,10 @@ PHPUnit 2 suite (`Unit`, `Feature`) — test env เป็น **in-memory SQLite
 
 > ส่วนนี้คือ "ของที่ยังไม่จริง" ทั้งหมด — เขียนไว้เพื่อไม่ให้ใครเข้าใจว่าทำเสร็จแล้ว
 
-### 🔴 บั๊กที่กระทบผู้ใช้จริง
-
-**1. Session cookie ของ `/admin` ไม่ได้แยกจาก frontend**
-`UseAdminSessionCookie` middleware มีอยู่ในโค้ด แต่**ไม่เคยถูกเรียกใช้งานที่ไหนเลย** — ไม่มีใน
-`bootstrap/app.php` alias, ไม่มีใน `AdminPanelProvider::$middleware` (ยืนยันด้วย grep ทั้ง repo)
-guard `web` และ `admin` ใน `config/auth.php` ทั้งคู่ใช้ driver `session` ใช้ cookie `vaelthorn_session` เหมือนกัน
-
-**อาการ:** ผู้เล่น login หน้าเว็บอยู่แล้วเปิดแท็บใหม่ (CSRF token ผูกกับ session เดียวกัน) →
-แอดมิน login `/admin` อีกแท็บ (session regenerate ตามมาตรฐาน Laravel) → ผู้เล่นกดส่งฟอร์มเดิม → **419**
-
-*ทดสอบด้วยเครื่องมือ HTTP จริง (curl จำลอง session cookie + CSRF, 2026-08-03) — reproduce ได้จริง*
-*ยังไม่มี automated test ครอบคลุมกรณีนี้ → ควรเขียน test เพิ่มด้วย*
+> **ปิดแล้ว (2026-08-03):** session cookie ของ `/admin` เคยไม่แยกจาก frontend (ใช้ `vaelthorn_session`
+> ร่วมกัน ทำให้แอดมิน login ไป regenerate session ของผู้เล่นที่ login ค้างอยู่ ได้ 419) — แก้แล้วโดยลงทะเบียน
+> `UseAdminSessionCookie` เป็น middleware ตัวแรกใน `AdminPanelProvider` ก่อน `StartSession` ดูหมวด Middleware
+> มี regression test คุมไว้ที่ `tests/Feature/AdminSessionCookieTest.php` (ยืนยัน red ก่อนแก้ / green หลังแก้แล้ว)
 
 ### 🟠 Dead code ที่ควรลบ (ถ้าไม่มีแผนจะกลับมาใช้)
 
