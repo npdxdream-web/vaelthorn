@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\ThreadCategory;
 use App\Filament\Resources\ThreadResource\Pages;
 use App\Models\City;
 use App\Models\Thread;
@@ -52,6 +53,10 @@ class ThreadResource extends Resource
                 ])
                 ->required()
                 ->default('pending'),
+            Forms\Components\Select::make('thread_category')
+                ->label('หมวดหมู่ (สำหรับกระทู้ประกาศ/คู่มือ/ฯลฯ เท่านั้น)')
+                ->options(ThreadCategory::class)
+                ->nullable(),
             Forms\Components\TextInput::make('exp_override')
                 ->label('EXP กำหนดเอง (เฉพาะกระทู้นี้)')
                 ->helperText('ปล่อยว่างเพื่อใช้ค่า EXP ปกติจาก Event หรือ 1 EXP สำหรับโซน auto-approve')
@@ -104,6 +109,10 @@ class ThreadResource extends Resource
                         'archived'     => 'เก็บถาวร',
                         default        => $state,
                     }),
+                Tables\Columns\TextColumn::make('thread_category')
+                    ->label('หมวดหมู่')
+                    ->badge()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('เวลา')
                     ->dateTime()
@@ -122,6 +131,9 @@ class ThreadResource extends Resource
                         'locked'       => 'ล็อค',
                         'archived'     => 'เก็บถาวร',
                     ]),
+                Tables\Filters\SelectFilter::make('thread_category')
+                    ->label('หมวดหมู่')
+                    ->options(ThreadCategory::class),
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
